@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, COLORS, LEARNING_CONTENT, BRAID_NAMES, BraidType } from '../constants';
+import {
+  GAME_WIDTH, GAME_HEIGHT, COLORS, LEARNING_CONTENT, BRAID_NAMES, BraidType,
+  MISTAKE_ADVICE, CATEGORY_NAMES, PerformanceCategory, CATEGORY_ICONS,
+} from '../constants';
 
 export class LearnScene extends Phaser.Scene {
   private currentPage: number = 0;
@@ -52,6 +55,40 @@ export class LearnScene extends Phaser.Scene {
       this.pageElements.push(typeTag);
     }
 
+    if ((content as any).isMistakeGuide) {
+      this.renderMistakeGuide();
+    } else {
+      this.renderStandardContent();
+    }
+
+    const pageIndicator = this.add.text(GAME_WIDTH / 2, 560, `${this.currentPage + 1} / ${this.totalPages}`, {
+      fontSize: '14px',
+      fontFamily: 'system-ui',
+      color: '#888888',
+    }).setOrigin(0.5);
+    this.pageElements.push(pageIndicator);
+
+    if (this.currentPage > 0) {
+      this.createNavButton(120, 560, '◀ 上一页', () => {
+        this.currentPage--;
+        this.showPage();
+      });
+    }
+
+    if (this.currentPage < this.totalPages - 1) {
+      this.createNavButton(GAME_WIDTH - 120, 560, '下一页 ▶', () => {
+        this.currentPage++;
+        this.showPage();
+      });
+    }
+
+    this.createNavButton(GAME_WIDTH / 2, 585, '返回菜单', () => {
+      this.scene.start('MenuScene');
+    });
+  }
+
+  private renderStandardContent() {
+    const content = LEARNING_CONTENT[this.currentPage];
     const contentText = this.add.text(70, 110, content.content, {
       fontSize: '16px',
       fontFamily: 'system-ui',
@@ -61,7 +98,7 @@ export class LearnScene extends Phaser.Scene {
     });
     this.pageElements.push(contentText);
 
-    const contentHeight = contentText.height + 30;
+    const contentHeight = Math.max(contentText.height + 30, 120);
     const contentBg = this.add.graphics();
     contentBg.fillStyle(0x2a1a3e, 0.8);
     contentBg.fillRoundedRect(50, 95, GAME_WIDTH - 100, contentHeight, 10);
@@ -111,30 +148,113 @@ export class LearnScene extends Phaser.Scene {
     } else {
       this.showBraidDiagram(content.type, tipsStartY + 15);
     }
+  }
 
-    const pageIndicator = this.add.text(GAME_WIDTH / 2, 560, `${this.currentPage + 1} / ${this.totalPages}`, {
-      fontSize: '14px',
+  private renderMistakeGuide() {
+    const categoryY = 100;
+    const catTitle = this.add.text(70, categoryY, '📊 失误四大分类', {
+      fontSize: '16px',
       fontFamily: 'system-ui',
-      color: '#888888',
-    }).setOrigin(0.5);
-    this.pageElements.push(pageIndicator);
+      color: '#ffd700',
+      fontStyle: 'bold',
+    });
+    this.pageElements.push(catTitle);
 
-    if (this.currentPage > 0) {
-      this.createNavButton(120, 560, '◀ 上一页', () => {
-        this.currentPage--;
-        this.showPage();
+    const catKeys = [
+      PerformanceCategory.PARTITION,
+      PerformanceCategory.GRAB,
+      PerformanceCategory.RHYTHM,
+      PerformanceCategory.TIGHTEN,
+    ];
+
+    const catWidth = 160;
+    const catGap = 10;
+    const catStartX = (GAME_WIDTH - (catWidth * 4 + catGap * 3)) / 2;
+    const catCardY = categoryY + 30;
+
+    catKeys.forEach((ck, i) => {
+      const cx = catStartX + i * (catWidth + catGap);
+      const catBg = this.add.graphics();
+      catBg.fillStyle(0x2a1a3e, 0.9);
+      catBg.lineStyle(1.5, COLORS.secondary, 0.4);
+      catBg.fillRoundedRect(cx, catCardY, catWidth, 60, 8);
+      catBg.strokeRoundedRect(cx, catCardY, catWidth, 60, 8);
+      this.pageElements.push(catBg);
+
+      const icon = CATEGORY_ICONS[ck];
+      const name = CATEGORY_NAMES[ck];
+      const catCount = MISTAKE_ADVICE.filter(a => a.category === ck).length;
+
+      const iconText = this.add.text(cx + catWidth / 2, catCardY + 18, `${icon} ${name}`, {
+        fontSize: '13px',
+        fontFamily: 'system-ui',
+        color: '#ffb6c1',
+        fontStyle: 'bold',
+      }).setOrigin(0.5);
+      this.pageElements.push(iconText);
+
+      const countText = this.add.text(cx + catWidth / 2, catCardY + 40, `${catCount} 种常见失误`, {
+        fontSize: '11px',
+        fontFamily: 'system-ui',
+        color: '#888888',
+      }).setOrigin(0.5);
+      this.pageElements.push(countText);
+    });
+
+    const listStartY = catCardY + 80;
+    const listTitle = this.add.text(70, listStartY, '📝 常见失误详解 & 纠正方法', {
+      fontSize: '16px',
+      fontFamily: 'system-ui',
+      color: '#ffd700',
+      fontStyle: 'bold',
+    });
+    this.pageElements.push(listTitle);
+
+    let cardY = listStartY + 30;
+    MISTAKE_ADVICE.forEach((advice, idx) => {
+      if (cardY > 500) return;
+      const cardH = 85;
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(0x2a1a3e, 0.85);
+      cardBg.lineStyle(1, COLORS.primary, 0.3);
+      cardBg.fillRoundedRect(50, cardY, GAME_WIDTH - 100, cardH, 8);
+      cardBg.strokeRoundedRect(50, cardY, GAME_WIDTH - 100, cardH, 8);
+      this.pageElements.push(cardBg);
+
+      const catIcon = CATEGORY_ICONS[advice.category];
+      const aTitle = this.add.text(70, cardY + 12, `${catIcon} ${idx + 1}. ${advice.title}`, {
+        fontSize: '13px',
+        fontFamily: 'system-ui',
+        color: '#ffb6c1',
+        fontStyle: 'bold',
       });
-    }
+      this.pageElements.push(aTitle);
 
-    if (this.currentPage < this.totalPages - 1) {
-      this.createNavButton(GAME_WIDTH - 120, 560, '下一页 ▶', () => {
-        this.currentPage++;
-        this.showPage();
+      const aCat = this.add.text(GAME_WIDTH - 70, cardY + 12, CATEGORY_NAMES[advice.category], {
+        fontSize: '10px',
+        fontFamily: 'system-ui',
+        color: '#999999',
+      }).setOrigin(1, 0);
+      this.pageElements.push(aCat);
+
+      const aDesc = this.add.text(70, cardY + 32, advice.description, {
+        fontSize: '11px',
+        fontFamily: 'system-ui',
+        color: '#c4a8d4',
+        wordWrap: { width: GAME_WIDTH - 200, useAdvancedWrap: true },
       });
-    }
+      this.pageElements.push(aDesc);
 
-    this.createNavButton(GAME_WIDTH / 2, 585, '返回菜单', () => {
-      this.scene.start('MenuScene');
+      const tipText = `💡 ${advice.tips[0]}`;
+      const aTip = this.add.text(70, cardY + 62, tipText, {
+        fontSize: '11px',
+        fontFamily: 'system-ui',
+        color: '#2ecc71',
+        wordWrap: { width: GAME_WIDTH - 140, useAdvancedWrap: true },
+      });
+      this.pageElements.push(aTip);
+
+      cardY += cardH + 6;
     });
   }
 

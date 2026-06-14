@@ -28,6 +28,7 @@ export class LevelSelectScene extends Phaser.Scene {
     });
 
     this.createBackButton();
+    this.createRecordButton();
   }
 
   private createLevelCard(level: typeof LEVELS[0], index: number, maxUnlocked: number) {
@@ -130,6 +131,26 @@ export class LevelSelectScene extends Phaser.Scene {
 
     btn.on('pointerdown', () => {
       this.scene.start('MenuScene');
+    });
+  }
+
+  private createRecordButton() {
+    const btn = this.add.image(GAME_WIDTH - 75, 40, 'btn-accent').setScale(0.6).setInteractive({ useHandCursor: true });
+    const label = this.add.text(GAME_WIDTH - 75, 40, '📚 练习记录', {
+      fontSize: '13px',
+      fontFamily: 'system-ui',
+      color: '#ffffff',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    btn.on('pointerover', () => {
+      this.tweens.add({ targets: [btn, label], scaleX: 0.66, scaleY: 0.66, duration: 100 });
+    });
+    btn.on('pointerout', () => {
+      this.tweens.add({ targets: [btn, label], scaleX: 0.6, scaleY: 0.6, duration: 100 });
+    });
+    btn.on('pointerdown', () => {
+      this.scene.start('PracticeRecordScene');
     });
   }
 }

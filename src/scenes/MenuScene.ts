@@ -50,13 +50,17 @@ export class MenuScene extends Phaser.Scene {
 
     this.add.image(GAME_WIDTH / 2, 310, 'head-base').setScale(1.1);
 
-    this.createMenuButton(GAME_WIDTH / 2, 440, '开始挑战', 'btn-primary', () => {
+    this.createMenuButton(GAME_WIDTH / 2 - 110, 440, '开始挑战', 'btn-primary', () => {
       this.scene.start('LevelSelectScene');
     });
 
-    this.createMenuButton(GAME_WIDTH / 2, 500, '编发学堂', 'btn-secondary', () => {
+    this.createMenuButton(GAME_WIDTH / 2 + 110, 440, '编发学堂', 'btn-secondary', () => {
       this.scene.start('LearnScene');
     });
+
+    this.createMenuButton(GAME_WIDTH / 2, 500, '📚 练习记录', 'btn-accent', () => {
+      this.scene.start('PracticeRecordScene');
+    }, 0.9);
 
     const hs = getHighScore(1);
     if (hs > 0) {
@@ -68,21 +72,21 @@ export class MenuScene extends Phaser.Scene {
     }
   }
 
-  private createMenuButton(x: number, y: number, text: string, texture: string, callback: () => void) {
-    const btn = this.add.image(x, y, texture).setInteractive({ useHandCursor: true });
+  private createMenuButton(x: number, y: number, text: string, texture: string, callback: () => void, scale: number = 1) {
+    const btn = this.add.image(x, y, texture).setScale(scale).setInteractive({ useHandCursor: true });
     const label = this.add.text(x, y, text, {
-      fontSize: '20px',
+      fontSize: `${20 * scale}px`,
       fontFamily: 'system-ui',
       color: '#ffffff',
       fontStyle: 'bold',
     }).setOrigin(0.5);
 
     btn.on('pointerover', () => {
-      this.tweens.add({ targets: btn, scaleX: 1.08, scaleY: 1.08, duration: 100 });
+      this.tweens.add({ targets: btn, scaleX: scale * 1.08, scaleY: scale * 1.08, duration: 100 });
       this.tweens.add({ targets: label, scaleX: 1.08, scaleY: 1.08, duration: 100 });
     });
     btn.on('pointerout', () => {
-      this.tweens.add({ targets: btn, scaleX: 1, scaleY: 1, duration: 100 });
+      this.tweens.add({ targets: btn, scaleX: scale, scaleY: scale, duration: 100 });
       this.tweens.add({ targets: label, scaleX: 1, scaleY: 1, duration: 100 });
     });
     btn.on('pointerdown', callback);

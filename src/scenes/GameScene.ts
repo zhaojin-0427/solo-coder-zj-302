@@ -3,8 +3,10 @@ import {
   GAME_WIDTH, GAME_HEIGHT, COLORS,
   LEVELS, LevelConfig, BraidStep, HairZone,
   GamePhase, BraidType, BRAID_NAMES, ZONE_NAMES,
+  StepReview, GameReviewData, CategoryScore, PerformanceCategory,
+  MistakeType, MISTAKE_ADVICE, CATEGORY_ADVICE_TEMPLATES,
 } from '../constants';
-import { saveScore } from '../storage';
+import { saveScore, saveReviewToPractice } from '../storage';
 
 interface ZoneArea {
   zone: HairZone;
@@ -22,6 +24,8 @@ interface RhythmNote {
   beatIndex: number;
   hit: boolean;
   missed: boolean;
+  hitQuality?: 'perfect' | 'great' | 'good';
+  wrongDir?: boolean;
   sprite?: Phaser.GameObjects.Image;
 }
 
@@ -65,6 +69,12 @@ export class GameScene extends Phaser.Scene {
   private isPaused: boolean = false;
   private lastHitTime: number = 0;
   private comboText?: Phaser.GameObjects.Text;
+  private gameStartTime: number = 0;
+  private stepReviews: StepReview[] = [];
+  private currentStepReview: StepReview | null = null;
+  private phaseStartTime: number = 0;
+  private curlDistractionThisStep: boolean = false;
+  private accessoryDistractionThisStep: boolean = false;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -99,6 +109,12 @@ export class GameScene extends Phaser.Scene {
     this.stepComplete = false;
     this.partitionedZones = new Set();
     this.isPaused = false;
+    this.gameStartTime = Date.now();
+    this.stepReviews = [];
+    this.currentStepReview = null;
+    this.phaseStartTime = 0;
+    this.curlDistractionThisStep = false;
+    this.accessoryDistractionThisStep = false;
   }
 
   create() {
@@ -154,6 +170,12 @@ export class GameScene extends Phaser.Scene {
 
     if (this.levelConfig.hasCurlInterference) {
       this.updateCurls(delta);
+      if (this.currentStepReview && this.curls.length > 0) {
+        const now = Date.now();
+        if (Math.random() < 0.0005 * delta) {
+          this.curlDistractionThisStep = true;
+        }
+      }
     }
   }
 
@@ -170,6 +192,7 @@ export class GameScene extends Phaser.Scene {
         repeat: -1,
         ease: 'Sine.easeInOut',
       });
+      this.accessoryDistractionThisStep = true;
     }
   }
 
@@ -454,12 +477,51 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private initCurrentStepReview() {
+    const step = this.levelConfig.braidSteps[this.currentStepIndex];
+    this.currentStepReview = {
+      stepIndex: this.currentStepIndex,
+      braidType: step.type,
+      zone: step.zone,
+      partition: {
+        correct: false,
+        attempts: 0,
+        timeSpent: 0,
+      },
+      grab: {
+        correct: false,
+        attempts: 0,
+      },
+      rhythm: {
+        totalNotes: step.sequence.length,
+        hits: 0,
+        misses: 0,
+        perfectHits: 0,
+        greatHits: 0,
+        goodHits: 0,
+        wrongDirections: 0,
+        earlyHits: 0,
+      },
+      tighten: {
+        quality: 'miss',
+        distance: 1,
+      },
+      hasCurlDistraction: this.levelConfig.hasCurlInterference,
+      hasAccessoryDistraction: this.levelConfig.hasAccessory,
+    };
+    this.curlDistractionThisStep = false;
+  }
+
   private startPhase(phase: GamePhase) {
     this.currentPhase = phase;
     this.stepComplete = false;
+    this.phaseStartTime = Date.now();
 
     switch (phase) {
       case GamePhase.PARTITION:
+        if (!this.currentStepReview) {
+          this.initCurrentStepReview();
+        }
         this.startPartitionPhase();
         break;
       case GamePhase.GRAB:
@@ -539,11 +601,20 @@ export class GameScene extends Phaser.Scene {
       ).setInteractive({ useHandCursor: true });
 
       hitRect.on('pointerdown', () => {
+        if (this.currentStepReview) {
+          this.currentStepReview.partition.attempts++;
+        }
         if (za.zone === targetZone) {
           this.selectZone(za);
           hitRect.destroy();
         } else {
           this.wrongZoneFeedback(za);
+          if (this.currentStepReview) {
+            this.currentStepReview.partition.mistake = MistakeType.WRONG_ZONE;
+            if (this.levelConfig.hasAccessory) {
+              this.accessoryDistractionThisStep = true;
+            }
+          }
         }
       });
 
@@ -597,6 +668,20 @@ export class GameScene extends Phaser.Scene {
 
     this.score += 5;
     this.addParticles(za.x + za.w / 2, za.y + za.h / 2, 'particle-gold');
+
+    if (this.currentStepReview) {
+      this.currentStepReview.partition.correct = true;
+      this.currentStepReview.partition.timeSpent = (Date.now() - this.phaseStartTime) / 1000;
+      if (this.currentStepReview.partition.attempts === 0) {
+        this.currentStepReview.partition.attempts = 1;
+      }
+      if (this.currentStepReview.partition.timeSpent > 5 && !this.currentStepReview.partition.mistake) {
+        this.currentStepReview.partition.mistake = MistakeType.SLOW_PARTITION;
+      }
+      if (this.levelConfig.hasAccessory && this.currentStepReview.partition.attempts > 2 && !this.currentStepReview.partition.mistake) {
+        this.currentStepReview.partition.mistake = MistakeType.ACCESSORY_DISTRACTED;
+      }
+    }
 
     this.time.delayedCall(600, () => {
       this.startPhase(GamePhase.GRAB);
@@ -660,6 +745,14 @@ export class GameScene extends Phaser.Scene {
     this.addParticles(strand.x, strand.y, 'particle');
 
     this.hairStrands.forEach((s) => s.removeInteractive());
+
+    if (this.currentStepReview) {
+      this.currentStepReview.grab.correct = true;
+      this.currentStepReview.grab.attempts = 1;
+      if (this.curlDistractionThisStep) {
+        this.currentStepReview.grab.mistake = MistakeType.CURL_DISTRACTED;
+      }
+    }
 
     this.time.delayedCall(500, () => {
       this.startPhase(GamePhase.CROSS);
@@ -785,6 +878,11 @@ export class GameScene extends Phaser.Scene {
         this.combo = 0;
         this.totalNotes++;
         this.score = Math.max(0, this.score - 2);
+
+        if (this.currentStepReview) {
+          this.currentStepReview.rhythm.misses++;
+        }
+
         this.updateUI();
         this.showHitFeedback('miss', this.rhythmHitZoneX, this.rhythmMarkerY - 40);
 
@@ -828,6 +926,9 @@ export class GameScene extends Phaser.Scene {
       this.combo = 0;
       this.updateUI();
       this.showHitFeedback('wrong_key', hitZoneX, this.rhythmMarkerY - 40);
+      if (this.currentStepReview) {
+        this.currentStepReview.rhythm.earlyHits++;
+      }
       return;
     }
 
@@ -840,8 +941,13 @@ export class GameScene extends Phaser.Scene {
       this.updateUI();
       this.showHitFeedback('wrong_dir', hitZoneX, this.rhythmMarkerY - 40);
       closestNote.missed = true;
+      closestNote.wrongDir = true;
       if (closestNote.sprite) {
         closestNote.sprite.setAlpha(0.5);
+      }
+      if (this.currentStepReview) {
+        this.currentStepReview.rhythm.wrongDirections++;
+        this.currentStepReview.rhythm.misses++;
       }
       this.time.delayedCall(300, () => {
         closestNote!.sprite?.destroy();
@@ -864,12 +970,28 @@ export class GameScene extends Phaser.Scene {
     if (closestDist < 15) {
       quality = 'perfect';
       points = 12;
+      closestNote.hitQuality = 'perfect';
+      if (this.currentStepReview) {
+        this.currentStepReview.rhythm.perfectHits++;
+      }
     } else if (closestDist < 35) {
       quality = 'great';
       points = 8;
+      closestNote.hitQuality = 'great';
+      if (this.currentStepReview) {
+        this.currentStepReview.rhythm.greatHits++;
+      }
     } else {
       quality = 'good';
       points = 4;
+      closestNote.hitQuality = 'good';
+      if (this.currentStepReview) {
+        this.currentStepReview.rhythm.goodHits++;
+      }
+    }
+
+    if (this.currentStepReview) {
+      this.currentStepReview.rhythm.hits++;
     }
 
     const comboBonus = Math.floor(this.combo / 5) * 2;
@@ -1069,6 +1191,20 @@ export class GameScene extends Phaser.Scene {
       this.combo = 0;
     }
 
+    if (this.currentStepReview) {
+      this.currentStepReview.tighten = {
+        quality: quality as 'perfect' | 'great' | 'good' | 'miss',
+        distance: dist,
+      };
+      if (quality === 'miss') {
+        if (this.tightenPower < this.tightenSweetSpot - 0.15) {
+          this.currentStepReview.tighten.mistake = MistakeType.WEAK_TIGHTEN;
+        } else {
+          this.currentStepReview.tighten.mistake = MistakeType.OVER_TIGHTEN;
+        }
+      }
+    }
+
     this.score += points;
     if (points > 0) {
       this.combo++;
@@ -1127,8 +1263,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private completeStep() {
+    if (this.currentStepReview) {
+      this.currentStepReview.hasCurlDistraction = this.curlDistractionThisStep;
+      this.currentStepReview.hasAccessoryDistraction = this.accessoryDistractionThisStep;
+      this.stepReviews.push({ ...this.currentStepReview });
+    }
+
     this.currentStepIndex++;
     this.braidProgress = 0;
+    this.currentStepReview = null;
 
     if (this.currentStepIndex >= this.levelConfig.braidSteps.length) {
       this.endGame(true);
@@ -1174,6 +1317,139 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private buildReviewData(success: boolean): GameReviewData {
+    const totalDuration = (Date.now() - this.gameStartTime) / 1000;
+    this.accuracy = this.totalNotes > 0 ? (this.totalHits / this.totalNotes) * 100 : 0;
+
+    const categoryScores: CategoryScore[] = this.buildCategoryScores();
+    const mainMistakeTypes = this.collectMainMistakes();
+    const targetedAdviceId = this.findTargetedAdvice(mainMistakeTypes, categoryScores);
+
+    return {
+      levelId: this.levelConfig.id,
+      levelName: this.levelConfig.name,
+      score: this.score,
+      accuracy: Math.round(this.accuracy),
+      maxCombo: this.maxCombo,
+      success,
+      categoryScores,
+      steps: this.stepReviews,
+      totalDuration,
+      mainMistakeTypes,
+      targetedAdviceId,
+    };
+  }
+
+  private buildCategoryScores(): CategoryScore[] {
+    const categories: PerformanceCategory[] = [
+      PerformanceCategory.PARTITION,
+      PerformanceCategory.GRAB,
+      PerformanceCategory.RHYTHM,
+      PerformanceCategory.TIGHTEN,
+    ];
+
+    return categories.map((cat) => {
+      let score = 0;
+      let total = 0;
+      const mistakes: MistakeType[] = [];
+
+      for (const step of this.stepReviews) {
+        switch (cat) {
+          case PerformanceCategory.PARTITION: {
+            total += 2;
+            if (step.partition.correct) {
+              score += step.partition.attempts <= 1 ? 2 : 1;
+            }
+            if (step.partition.mistake) {
+              mistakes.push(step.partition.mistake);
+            }
+            break;
+          }
+          case PerformanceCategory.GRAB: {
+            total += 1;
+            if (step.grab.correct) score += 1;
+            if (step.grab.mistake) {
+              mistakes.push(step.grab.mistake);
+            }
+            break;
+          }
+          case PerformanceCategory.RHYTHM: {
+            total += step.rhythm.totalNotes;
+            score += step.rhythm.perfectHits * 3 + step.rhythm.greatHits * 2 + step.rhythm.goodHits * 1;
+            if (step.rhythm.misses > 0) mistakes.push(MistakeType.MISS_RHYTHM);
+            if (step.rhythm.wrongDirections > 0) mistakes.push(MistakeType.WRONG_DIRECTION);
+            if (step.rhythm.earlyHits > 0) mistakes.push(MistakeType.EARLY_HIT);
+            break;
+          }
+          case PerformanceCategory.TIGHTEN: {
+            total += 3;
+            if (step.tighten.quality === 'perfect') score += 3;
+            else if (step.tighten.quality === 'great') score += 2;
+            else if (step.tighten.quality === 'good') score += 1;
+            if (step.tighten.mistake) {
+              mistakes.push(step.tighten.mistake);
+            }
+            break;
+          }
+        }
+      }
+
+      if (total === 0) total = 1;
+      const percentage = Math.min(100, Math.round((score / total) * 100));
+      let grade: 'excellent' | 'good' | 'fair' | 'poor';
+      if (percentage >= 90) grade = 'excellent';
+      else if (percentage >= 70) grade = 'good';
+      else if (percentage >= 50) grade = 'fair';
+      else grade = 'poor';
+
+      return {
+        category: cat,
+        score,
+        total,
+        percentage,
+        grade,
+        mistakes: Array.from(new Set(mistakes)),
+      };
+    });
+  }
+
+  private collectMainMistakes(): MistakeType[] {
+    const counter: Record<string, number> = {};
+
+    for (const step of this.stepReviews) {
+      if (step.partition.mistake) counter[step.partition.mistake] = (counter[step.partition.mistake] || 0) + 1;
+      if (step.grab.mistake) counter[step.grab.mistake] = (counter[step.grab.mistake] || 0) + 1;
+      if (step.tighten.mistake) counter[step.tighten.mistake] = (counter[step.tighten.mistake] || 0) + 1;
+
+      if (step.rhythm.misses > 0) counter[MistakeType.MISS_RHYTHM] = (counter[MistakeType.MISS_RHYTHM] || 0) + step.rhythm.misses;
+      if (step.rhythm.wrongDirections > 0) counter[MistakeType.WRONG_DIRECTION] = (counter[MistakeType.WRONG_DIRECTION] || 0) + step.rhythm.wrongDirections;
+      if (step.rhythm.earlyHits > 0) counter[MistakeType.EARLY_HIT] = (counter[MistakeType.EARLY_HIT] || 0) + step.rhythm.earlyHits;
+    }
+
+    return Object.entries(counter)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([k]) => k as MistakeType);
+  }
+
+  private findTargetedAdvice(
+    mainMistakes: MistakeType[],
+    categoryScores: CategoryScore[],
+  ): MistakeType | null {
+    if (mainMistakes.length > 0) {
+      return mainMistakes[0];
+    }
+
+    const sorted = [...categoryScores].sort((a, b) => a.percentage - b.percentage);
+    const weakest = sorted[0];
+    if (weakest && weakest.percentage < 70) {
+      const advice = MISTAKE_ADVICE.find((a) => a.category === weakest.category);
+      return advice?.id || null;
+    }
+
+    return null;
+  }
+
   private endGame(success: boolean) {
     this.isPaused = true;
     if (this.timerEvent) this.timerEvent.remove();
@@ -1191,6 +1467,9 @@ export class GameScene extends Phaser.Scene {
       date: new Date().toISOString(),
     });
 
+    const review = this.buildReviewData(success);
+    saveReviewToPractice(review);
+
     this.time.delayedCall(500, () => {
       this.scene.start('GameOverScene', {
         score: this.score,
@@ -1201,6 +1480,7 @@ export class GameScene extends Phaser.Scene {
         success,
         timeBonus,
         comboBonus,
+        reviewData: review,
       });
     });
   }
