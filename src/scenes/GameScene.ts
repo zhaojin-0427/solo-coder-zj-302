@@ -44,7 +44,7 @@ export class GameScene extends Phaser.Scene {
   private rhythmTrackX: number = 60;
   private rhythmTrackWidth: number = 680;
   private rhythmHitZoneX: number = 120;
-  private rhythmMarkerY: number = 500;
+  private rhythmMarkerY: number = 520;
   private rhythmScrollSpeed: number = 3;
   private rhythmActive: boolean = false;
   private currentSequenceIndex: number = 0;
@@ -56,6 +56,8 @@ export class GameScene extends Phaser.Scene {
   private curls: Phaser.GameObjects.Image[] = [];
   private completionPercent: number = 0;
   private uiElements: Phaser.GameObjects.GameObject[] = [];
+  private rhythmUiElements: Phaser.GameObjects.GameObject[] = [];
+  private tightenUiElements: Phaser.GameObjects.GameObject[] = [];
   private stepComplete: boolean = false;
   private partitionedZones: Set<HairZone> = new Set();
   private headX: number = 400;
@@ -92,12 +94,18 @@ export class GameScene extends Phaser.Scene {
     this.curls = [];
     this.completionPercent = 0;
     this.uiElements = [];
+    this.rhythmUiElements = [];
+    this.tightenUiElements = [];
     this.stepComplete = false;
     this.partitionedZones = new Set();
     this.isPaused = false;
   }
 
   create() {
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1a0a2e, 1);
+    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
     this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'game-bg');
     this.setupHeadModel();
     this.setupZoneAreas();
@@ -299,36 +307,37 @@ export class GameScene extends Phaser.Scene {
   }
 
   private setupHintBar() {
-    const y = 400;
+    const y = 380;
     const bg = this.add.graphics();
     bg.fillStyle(0x2a1a3e, 0.9);
-    bg.fillRoundedRect(20, y - 5, GAME_WIDTH - 40, 36, 8);
+    bg.fillRoundedRect(20, y - 5, GAME_WIDTH - 40, 32, 8);
     bg.lineStyle(1, COLORS.primary, 0.3);
-    bg.strokeRoundedRect(20, y - 5, GAME_WIDTH - 40, 36, 8);
+    bg.strokeRoundedRect(20, y - 5, GAME_WIDTH - 40, 32, 8);
 
     this.uiElements.push(
-      this.add.text(GAME_WIDTH / 2, y + 10, '', {
-        fontSize: '14px',
+      this.add.text(GAME_WIDTH / 2, y + 8, '', {
+        fontSize: '13px',
         fontFamily: 'system-ui',
         color: '#ffb6c1',
         align: 'center',
+        wordWrap: { width: GAME_WIDTH - 80 },
       }).setOrigin(0.5).setName('hintText'),
     );
   }
 
   private setupCompletionBar() {
-    const y = 440;
+    const y = 420;
     const bg = this.add.graphics();
     bg.fillStyle(0x2a1a3e, 0.9);
-    bg.fillRoundedRect(20, y, GAME_WIDTH - 40, 16, 6);
+    bg.fillRoundedRect(20, y, GAME_WIDTH - 40, 14, 6);
 
     this.uiElements.push(bg);
     this.uiElements.push(
       this.add.graphics().setName('completionFill'),
     );
     this.uiElements.push(
-      this.add.text(GAME_WIDTH / 2, y + 8, '', {
-        fontSize: '11px',
+      this.add.text(GAME_WIDTH / 2, y + 7, '', {
+        fontSize: '10px',
         fontFamily: 'system-ui',
         color: '#ffffff',
       }).setOrigin(0.5).setName('completionText'),
@@ -336,10 +345,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private setupStepIndicator() {
-    const y = 465;
+    const y = 443;
     this.uiElements.push(
       this.add.text(GAME_WIDTH / 2, y, '', {
-        fontSize: '12px',
+        fontSize: '11px',
         fontFamily: 'system-ui',
         color: '#d2b4de',
       }).setOrigin(0.5).setName('stepText'),
@@ -422,7 +431,7 @@ export class GameScene extends Phaser.Scene {
     fill.clear();
     const gradientColor = this.completionPercent < 50 ? COLORS.warning : COLORS.success;
     fill.fillStyle(gradientColor, 0.8);
-    fill.fillRoundedRect(22, 442, Math.max(barWidth, 0), 12, 4);
+    fill.fillRoundedRect(22, 422, Math.max(barWidth, 0), 10, 4);
 
     text.setText(`完成度: ${Math.floor(this.completionPercent)}%`);
   }
@@ -678,17 +687,17 @@ export class GameScene extends Phaser.Scene {
     trackBg.fillRoundedRect(this.rhythmTrackX - 10, this.rhythmMarkerY - 35, this.rhythmTrackWidth + 20, 70, 10);
     trackBg.lineStyle(2, COLORS.primary, 0.4);
     trackBg.strokeRoundedRect(this.rhythmTrackX - 10, this.rhythmMarkerY - 35, this.rhythmTrackWidth + 20, 70, 10);
-    this.uiElements.push(trackBg);
+    this.rhythmUiElements.push(trackBg);
 
     const hitZoneBg = this.add.graphics();
     hitZoneBg.fillStyle(COLORS.success, 0.15);
     hitZoneBg.fillRect(this.rhythmHitZoneX - 25, this.rhythmMarkerY - 30, 50, 60);
-    this.uiElements.push(hitZoneBg);
+    this.rhythmUiElements.push(hitZoneBg);
 
     const hitLine = this.add.graphics();
     hitLine.lineStyle(3, COLORS.success, 0.9);
     hitLine.lineBetween(this.rhythmHitZoneX, this.rhythmMarkerY - 32, this.rhythmHitZoneX, this.rhythmMarkerY + 32);
-    this.uiElements.push(hitLine);
+    this.rhythmUiElements.push(hitLine);
 
     const leftHint = this.add.text(this.rhythmHitZoneX - 60, this.rhythmMarkerY + 45, '← 左键', {
       fontSize: '12px',
@@ -696,7 +705,7 @@ export class GameScene extends Phaser.Scene {
       color: '#ff6b6b',
       fontStyle: 'bold',
     }).setOrigin(0.5);
-    this.uiElements.push(leftHint);
+    this.rhythmUiElements.push(leftHint);
 
     const rightHint = this.add.text(this.rhythmHitZoneX + 60, this.rhythmMarkerY + 45, '右键 →', {
       fontSize: '12px',
@@ -704,7 +713,7 @@ export class GameScene extends Phaser.Scene {
       color: '#4ecdc4',
       fontStyle: 'bold',
     }).setOrigin(0.5);
-    this.uiElements.push(rightHint);
+    this.rhythmUiElements.push(rightHint);
   }
 
   private setupRhythmTrack(step: BraidStep) {
@@ -794,6 +803,8 @@ export class GameScene extends Phaser.Scene {
           n.sprite?.destroy();
           (n.sprite as any)?.dirLabel?.destroy();
         });
+        this.rhythmUiElements.forEach((el) => el.destroy());
+        this.rhythmUiElements = [];
         this.startPhase(GamePhase.TIGHTEN);
       });
     }
@@ -1013,7 +1024,11 @@ export class GameScene extends Phaser.Scene {
         color: '#ffb6c1',
         fontStyle: 'bold',
       }).setOrigin(0.5).setName('tightenLabel');
-      this.uiElements.push(lbl);
+      this.tightenUiElements.push(lbl);
+    }
+    const bar = this.children.getByName('tightenBar') as Phaser.GameObjects.Graphics;
+    if (bar && !this.tightenUiElements.includes(bar)) {
+      this.tightenUiElements.push(bar);
     }
   }
 
@@ -1073,10 +1088,8 @@ export class GameScene extends Phaser.Scene {
     this.updateUI();
 
     this.time.delayedCall(1000, () => {
-      const tightenBar = this.children.getByName('tightenBar') as Phaser.GameObjects.Graphics;
-      if (tightenBar) tightenBar.destroy();
-      const tightenLabel = this.children.getByName('tightenLabel') as Phaser.GameObjects.Text;
-      if (tightenLabel) tightenLabel.destroy();
+      this.tightenUiElements.forEach((el) => el.destroy());
+      this.tightenUiElements = [];
       this.startPhase(GamePhase.COMPLETE);
     });
   }

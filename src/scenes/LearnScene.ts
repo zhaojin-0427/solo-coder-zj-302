@@ -20,7 +20,13 @@ export class LearnScene extends Phaser.Scene {
     this.pageElements.forEach((el) => el.destroy());
     this.pageElements = [];
 
-    this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'menu-bg');
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1a0a2e, 1);
+    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    this.pageElements.push(bg);
+
+    const menuBg = this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'menu-bg');
+    this.pageElements.push(menuBg);
 
     const content = LEARNING_CONTENT[this.currentPage];
 
@@ -46,27 +52,28 @@ export class LearnScene extends Phaser.Scene {
       this.pageElements.push(typeTag);
     }
 
-    const contentBg = this.add.graphics();
-    contentBg.fillStyle(0x2a1a3e, 0.8);
-    contentBg.fillRoundedRect(50, 95, GAME_WIDTH - 100, 200, 10);
-    this.pageElements.push(contentBg);
-
     const contentText = this.add.text(70, 110, content.content, {
       fontSize: '16px',
       fontFamily: 'system-ui',
       color: '#e8d8f0',
       lineSpacing: 8,
-      wordWrap: { width: GAME_WIDTH - 150 },
+      wordWrap: { width: GAME_WIDTH - 160, useAdvancedWrap: true },
     });
     this.pageElements.push(contentText);
 
-    if (content.tips.length > 0) {
-      const tipsBg = this.add.graphics();
-      tipsBg.fillStyle(COLORS.primary, 0.15);
-      tipsBg.fillRoundedRect(50, 310, GAME_WIDTH - 100, 120, 10);
-      this.pageElements.push(tipsBg);
+    const contentHeight = contentText.height + 30;
+    const contentBg = this.add.graphics();
+    contentBg.fillStyle(0x2a1a3e, 0.8);
+    contentBg.fillRoundedRect(50, 95, GAME_WIDTH - 100, contentHeight, 10);
+    contentBg.depth = contentText.depth - 1;
+    this.pageElements.push(contentBg);
+    contentBg.setDepth(0);
+    contentText.setDepth(1);
 
-      const tipsTitle = this.add.text(70, 320, '💡 要点提示', {
+    const tipsStartY = 95 + contentHeight + 12;
+
+    if (content.tips.length > 0) {
+      const tipsTitle = this.add.text(70, tipsStartY, '💡 要点提示', {
         fontSize: '16px',
         fontFamily: 'system-ui',
         color: '#ffd700',
@@ -74,17 +81,36 @@ export class LearnScene extends Phaser.Scene {
       });
       this.pageElements.push(tipsTitle);
 
+      const tipTexts: Phaser.GameObjects.Text[] = [];
+      let totalTipsHeight = 10;
       content.tips.forEach((tip, i) => {
-        const tipText = this.add.text(85, 348 + i * 26, `• ${tip}`, {
+        const tipText = this.add.text(85, 0, `• ${tip}`, {
           fontSize: '14px',
           fontFamily: 'system-ui',
           color: '#ffb6c1',
+          wordWrap: { width: GAME_WIDTH - 180, useAdvancedWrap: true },
+          lineSpacing: 4,
         });
+        tipText.y = tipsStartY + 32 + totalTipsHeight;
+        tipTexts.push(tipText);
         this.pageElements.push(tipText);
+        totalTipsHeight += tipText.height + 10;
       });
-    }
 
-    this.showBraidDiagram(content.type);
+      const tipsBgHeight = 35 + totalTipsHeight;
+      const tipsBg = this.add.graphics();
+      tipsBg.fillStyle(COLORS.primary, 0.15);
+      tipsBg.fillRoundedRect(50, tipsStartY - 8, GAME_WIDTH - 100, tipsBgHeight, 10);
+      tipsBg.depth = tipsTitle.depth - 1;
+      this.pageElements.push(tipsBg);
+      tipsBg.setDepth(0);
+      tipsTitle.setDepth(1);
+      tipTexts.forEach(t => t.setDepth(1));
+
+      this.showBraidDiagram(content.type, tipsStartY + tipsBgHeight + 15);
+    } else {
+      this.showBraidDiagram(content.type, tipsStartY + 15);
+    }
 
     const pageIndicator = this.add.text(GAME_WIDTH / 2, 560, `${this.currentPage + 1} / ${this.totalPages}`, {
       fontSize: '14px',
@@ -112,9 +138,9 @@ export class LearnScene extends Phaser.Scene {
     });
   }
 
-  private showBraidDiagram(type: BraidType | null) {
+  private showBraidDiagram(type: BraidType | null, startY: number = 460) {
     const diagramX = GAME_WIDTH / 2;
-    const diagramY = 460;
+    const diagramY = Math.min(startY + 30, 470);
 
     const bg = this.add.graphics();
     bg.fillStyle(0x3d2b5e, 0.5);

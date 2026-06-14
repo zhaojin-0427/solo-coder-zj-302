@@ -8,6 +8,10 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1a0a2e, 1);
+    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
     this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'menu-bg');
 
     this.add.particles(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'particle', {
