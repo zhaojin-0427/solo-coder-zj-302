@@ -1183,16 +1183,7 @@ export class CommissionGameScene extends Phaser.Scene {
     saveCommissionRecord(record);
 
     this.time.delayedCall(500, () => {
-      this.scene.start('CommissionGameOverScene', {
-        score: this.score, accuracy: Math.round(this.accuracy),
-        maxCombo: this.maxCombo, commissionId: this.commissionConfig.id,
-        commissionName: COMMISSION_SCENE_NAMES[this.commissionConfig.scene],
-        customerName: this.commissionConfig.customer.name,
-        success, timeBonus, comboBonus,
-        reviewData: review, satisfaction: satResult.satisfaction,
-        satisfactionBreakdown: satResult.breakdown,
-        rewards: this.commissionConfig.rewards,
-      });
+      this.scene.start('CommissionGameOverScene', { record });
     });
   }
 }

@@ -179,134 +179,138 @@ export class CommissionListScene extends Phaser.Scene {
     this.detailPanel.lineStyle(2, COLORS.secondary, 0.4);
     this.detailPanel.strokeRoundedRect(390, 80, GAME_WIDTH - 410, GAME_HEIGHT - 140, 10);
 
-    let y = 88;
+    let y = 85;
 
     const sceneIcon = COMMISSION_SCENE_ICONS[commission.scene];
     const sceneName = COMMISSION_SCENE_NAMES[commission.scene];
 
     const title = this.add.text(GAME_WIDTH / 2 + 195, y, `${sceneIcon} ${sceneName}委托`, {
-      fontSize: '16px',
+      fontSize: '15px',
       fontFamily: 'system-ui',
       color: '#ffd700',
       fontStyle: 'bold',
     }).setOrigin(0.5);
     this.detailElements.push(title);
-    y += 22;
+    y += 20;
 
-    this.drawCustomerAvatarSmall(commission, 418, y + 28);
+    this.drawCustomerAvatarSmall(commission, 418, y + 25);
 
     const infoStartX = 475;
     const nameText = this.add.text(infoStartX, y, `顾客: ${commission.customer.name}`, {
-      fontSize: '13px',
+      fontSize: '12px',
       fontFamily: 'system-ui',
       color: '#ffffff',
       fontStyle: 'bold',
     });
     this.detailElements.push(nameText);
-    y += 18;
+    y += 16;
 
     const hairText = this.add.text(infoStartX, y,
       `发质: ${commission.customer.hairFeatures.map((f) => HAIR_FEATURE_NAMES[f]).join(' · ')}`, {
-      fontSize: '11px',
+      fontSize: '10px',
       fontFamily: 'system-ui',
       color: '#d2b4de',
     });
     this.detailElements.push(hairText);
-    y += 18;
+    y += 16;
 
     const timeText = this.add.text(infoStartX, y,
       `时间: ${commission.availableTime}分钟 · 难度: ${DIFFICULTY_STARS[commission.difficulty]}`, {
-      fontSize: '11px',
+      fontSize: '10px',
       fontFamily: 'system-ui',
       color: '#4ecdc4',
     });
     this.detailElements.push(timeText);
-    y += 28;
+    y += 24;
 
     this.drawSectionLabel('💭 期望风格', y);
-    y += 18;
+    y += 16;
     commission.preferredStyles.forEach((style) => {
       const tag = this.createTag(410, y, STYLE_PREFERENCE_NAMES[style], COLORS.primary);
       this.detailElements.push(...tag);
-      y += 20;
+      y += 18;
     });
     y += 2;
 
     if (commission.taboos.length > 0) {
       this.drawSectionLabel('🚫 禁忌要求', y);
-      y += 18;
+      y += 16;
       commission.taboos.forEach((taboo) => {
         const tag = this.createTag(410, y, TABOO_NAMES[taboo], COLORS.danger);
         this.detailElements.push(...tag);
-        y += 20;
+        y += 18;
       });
       y += 2;
     }
 
     this.drawSectionLabel('📝 顾客需求', y);
-    y += 18;
+    y += 16;
     const desc = this.add.text(410, y, `"${commission.description}"`, {
-      fontSize: '11px',
+      fontSize: '10px',
       fontFamily: 'system-ui',
       color: '#e8d8f0',
       fontStyle: 'italic',
       wordWrap: { width: GAME_WIDTH - 440, useAdvancedWrap: true },
-      lineSpacing: 2,
+      lineSpacing: 1,
     });
     this.detailElements.push(desc);
-    y += desc.height + 8;
+    y += desc.height + 6;
 
     this.drawSectionLabel('🎯 评分项目', y);
-    y += 18;
+    y += 16;
     commission.scoringItems.forEach((item) => {
       const barW = GAME_WIDTH - 440;
       const trackBg = this.add.graphics();
       trackBg.fillStyle(0x3d2b5e, 0.8);
-      trackBg.fillRoundedRect(410, y, barW, 7, 3);
+      trackBg.fillRoundedRect(410, y, barW, 6, 3);
       this.detailElements.push(trackBg);
 
       const fill = this.add.graphics();
       fill.fillStyle(COLORS.success, 0.8);
-      fill.fillRoundedRect(410, y, barW * item.weight, 7, 3);
+      fill.fillRoundedRect(410, y, barW * item.weight, 6, 3);
       this.detailElements.push(fill);
 
-      const label = this.add.text(410, y + 11,
+      const label = this.add.text(410, y + 9,
         `${item.name} (${Math.round(item.weight * 100)}%)`, {
-        fontSize: '10px',
+        fontSize: '9px',
         fontFamily: 'system-ui',
         color: '#bfa9d4',
       });
       this.detailElements.push(label);
-      y += 26;
+      y += 22;
     });
 
     this.drawSectionLabel('💇 编发步骤', y);
-    y += 18;
+    y += 16;
+    const stepsPerRow = 2;
     commission.braidSteps.forEach((step, i) => {
-      const stepText = this.add.text(410, y,
-        `${i + 1}. ${BRAID_NAMES[step.type]} - ${ZONE_NAMES[step.zone]}`, {
-        fontSize: '10px',
+      const col = i % stepsPerRow;
+      const row = Math.floor(i / stepsPerRow);
+      const stepX = 410 + col * 175;
+      const stepY = y + row * 20;
+      const stepText = this.add.text(stepX, stepY,
+        `${i + 1}. ${BRAID_NAMES[step.type]}·${ZONE_NAMES[step.zone]}`, {
+        fontSize: '9px',
         fontFamily: 'system-ui',
         color: '#ffb6c1',
       });
       this.detailElements.push(stepText);
-      y += 16;
     });
-    y += 4;
+    y += Math.ceil(commission.braidSteps.length / stepsPerRow) * 20 + 4;
 
     const rewardText = this.add.text(GAME_WIDTH / 2 + 195, y,
       `🏆 奖励: +${commission.rewards.exp}经验 · ${commission.rewards.title}`, {
-      fontSize: '11px',
+      fontSize: '10px',
       fontFamily: 'system-ui',
       color: '#ffd700',
       fontStyle: 'bold',
     }).setOrigin(0.5);
     this.detailElements.push(rewardText);
-    y += 22;
+    y += 24;
 
     const startBtn = this.createButton(GAME_WIDTH / 2 + 195, y, '✨ 开始委托', 'btn-primary', () => {
       this.startCommission(commission);
-    }, 0.8);
+    }, 0.75);
     this.detailElements.push(...startBtn);
   }
 
