@@ -5,6 +5,7 @@ import {
   GamePhase, BraidType, BRAID_NAMES, ZONE_NAMES,
   StepReview, GameReviewData, CategoryScore, PerformanceCategory,
   MistakeType, MISTAKE_ADVICE, CATEGORY_ADVICE_TEMPLATES,
+  HAIR_ACCESSORIES, HairAccessory,
 } from '../constants';
 import { saveScore, saveReviewToPractice, getHighScore } from '../storage';
 
@@ -56,6 +57,7 @@ export class GameScene extends Phaser.Scene {
   private tightenDirection: number = 1;
   private tightenActive: boolean = false;
   private tightenSweetSpot: number = 0.7;
+  private tightenToleranceBonus: number = 0;
   private hairStrands: Phaser.GameObjects.Image[] = [];
   private curls: Phaser.GameObjects.Image[] = [];
   private completionPercent: number = 0;
@@ -75,13 +77,24 @@ export class GameScene extends Phaser.Scene {
   private phaseStartTime: number = 0;
   private curlDistractionThisStep: boolean = false;
   private accessoryDistractionThisStep: boolean = false;
+  private selectedAccessoryIds: string[] = [];
+  private selectedAccessories: HairAccessory[] = [];
+  private accessoryPartitionBonus: number = 0;
+  private accessoryGrabInterference: number = 0;
+  private accessoryTightenTolerance: number = 0;
+  private accessorySatisfactionBonus: number = 0;
 
   constructor() {
     super({ key: 'GameScene' });
   }
 
-  init(data: { levelId: number }) {
+  init(data: { levelId: number; accessoryIds?: string[] }) {
     this.levelConfig = LEVELS.find((l) => l.id === data.levelId) || LEVELS[0];
+    this.selectedAccessoryIds = data.accessoryIds || [];
+    this.selectedAccessories = this.selectedAccessoryIds
+      .map((id) => HAIR_ACCESSORIES.find((a) => a.id === id))
+      .filter((a): a is HairAccessory => !!a);
+    this.calculateAccessoryEffects();
     this.currentStepIndex = 0;
     this.currentPhase = GamePhase.PARTITION;
     this.score = 0;
@@ -179,10 +192,47 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private calculateAccessoryEffects() {
+    this.accessoryPartitionBonus = 0;
+    this.accessoryGrabInterference = 0;
+    this.accessoryTightenTolerance = 0;
+    this.accessorySatisfactionBonus = 0;
+
+    this.selectedAccessories.forEach((acc) => {
+      this.accessoryPartitionBonus += acc.effects.partitionBonus;
+      this.accessoryGrabInterference += acc.effects.grabInterference;
+      this.accessoryTightenTolerance += acc.effects.tightenTolerance;
+      this.accessorySatisfactionBonus += acc.effects.satisfactionBonus;
+    });
+
+    if (this.selectedAccessories.length > 0) {
+      this.accessoryDistractionThisStep = this.accessoryGrabInterference > 0.05;
+    }
+  }
+
   private setupHeadModel() {
     this.add.image(this.headX, this.headY, 'head-base').setScale(1.3);
 
-    if (this.levelConfig.hasAccessory) {
+    if (this.selectedAccessories.length > 0) {
+      this.selectedAccessories.forEach((acc, i) => {
+        const pos = acc.displayPosition;
+        const accText = this.add.text(
+          this.headX + pos.x,
+          this.headY + pos.y,
+          acc.icon,
+          { fontSize: `${28 * pos.scale}px`, fontFamily: 'system-ui' },
+        ).setOrigin(0.5).setDepth(i + 2);
+
+        this.tweens.add({
+          targets: accText,
+          y: accText.y - 3,
+          duration: 1200 + i * 200,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
+      });
+    } else if (this.levelConfig.hasAccessory) {
       const acc = this.add.image(this.headX - 40, this.headY - 70, 'accessory').setScale(1.2);
       this.tweens.add({
         targets: acc,
@@ -666,7 +716,8 @@ export class GameScene extends Phaser.Scene {
     za.graphics!.strokeRoundedRect(za.x, za.y, za.w, za.h, 8);
     za.label!.setAlpha(1);
 
-    this.score += 5;
+    const partitionScore = 5 + Math.max(0, this.accessoryPartitionBonus);
+    this.score += partitionScore;
     this.addParticles(za.x + za.w / 2, za.y + za.h / 2, 'particle-gold');
 
     if (this.currentStepReview) {
@@ -1092,6 +1143,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.tightenSweetSpot = 0.55 + Math.random() * 0.25;
+    this.tightenToleranceBonus = this.accessoryTightenTolerance;
 
     this.drawTightenBar();
   }
@@ -1111,13 +1163,14 @@ export class GameScene extends Phaser.Scene {
     g.lineStyle(2, COLORS.primary, 0.4);
     g.strokeRoundedRect(barX - 10, barY - 10, barW + 20, barH + 20, 8);
 
-    const sweetStart = this.tightenSweetSpot - 0.08;
-    const sweetEnd = this.tightenSweetSpot + 0.08;
+    const tol = this.tightenToleranceBonus;
+    const sweetStart = this.tightenSweetSpot - (0.08 + tol * 0.5);
+    const sweetEnd = this.tightenSweetSpot + (0.08 + tol * 0.5);
     g.fillStyle(COLORS.success, 0.25);
     g.fillRect(barX + sweetStart * barW, barY, (sweetEnd - sweetStart) * barW, barH);
 
-    const perfectStart = this.tightenSweetSpot - 0.03;
-    const perfectEnd = this.tightenSweetSpot + 0.03;
+    const perfectStart = this.tightenSweetSpot - (0.03 + tol * 0.25);
+    const perfectEnd = this.tightenSweetSpot + (0.03 + tol * 0.25);
     g.fillStyle(COLORS.accent, 0.4);
     g.fillRect(barX + perfectStart * barW, barY, (perfectEnd - perfectStart) * barW, barH);
 
@@ -1458,7 +1511,8 @@ export class GameScene extends Phaser.Scene {
 
     const timeBonus = success ? Math.floor(this.timeRemaining * 0.5) : 0;
     const comboBonus = this.maxCombo * 2;
-    this.score += timeBonus + comboBonus;
+    const accessoryBonus = this.accessorySatisfactionBonus;
+    this.score += timeBonus + comboBonus + accessoryBonus;
 
     const previousHighScore = getHighScore(this.levelConfig.id);
     const isNewRecord = this.score > previousHighScore && this.score > 0;

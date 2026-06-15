@@ -109,7 +109,7 @@ export class LevelSelectScene extends Phaser.Scene {
         this.tweens.add({ targets: [numText, nameText], x: '-=3', duration: 100 });
       });
       hitArea.on('pointerdown', () => {
-        this.scene.start('GameScene', { levelId: level.id });
+        this.scene.start('AccessoryPrepScene', { mode: 'level', levelId: level.id });
       });
     }
   }

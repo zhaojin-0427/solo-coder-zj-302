@@ -794,4 +794,419 @@ export const LEARNING_CONTENT = [
     tips: ['每次练习后复盘失误项', '针对最弱项专项突破', '记录进步，建立信心'],
     isMistakeGuide: true,
   },
+  {
+    title: '发饰搭配技巧',
+    content: '合适的发饰能为造型加分，但搭配不当反而会成为操作障碍。发饰的选择需要综合考虑场景风格、编发区域和操作难度。基本原则：避开即将操作的区域佩戴装饰性发饰，功能性发饰（分区夹、定型喷雾）则应提前准备使用。',
+    type: null,
+    tips: ['甜美场景优先蝴蝶结、丝带', '通勤场景优先分区夹、隐形皮筋', '婚礼场景优先珍珠链、发夹', '运动场景优先定型喷雾、隐形皮筋'],
+    isAccessoryGuide: true,
+  },
 ];
+
+export enum AccessoryCategory {
+  DECORATION = 'decoration',
+  FIXING = 'fixing',
+  STYLING = 'styling',
+  COLOR = 'color',
+}
+
+export const ACCESSORY_CATEGORY_NAMES: Record<AccessoryCategory, string> = {
+  [AccessoryCategory.DECORATION]: '装饰发饰',
+  [AccessoryCategory.FIXING]: '固定工具',
+  [AccessoryCategory.STYLING]: '造型辅助',
+  [AccessoryCategory.COLOR]: '发色点缀',
+};
+
+export const ACCESSORY_CATEGORY_ICONS: Record<AccessoryCategory, string> = {
+  [AccessoryCategory.DECORATION]: '🎀',
+  [AccessoryCategory.FIXING]: '🔒',
+  [AccessoryCategory.STYLING]: '✨',
+  [AccessoryCategory.COLOR]: '🎨',
+};
+
+export interface AccessoryEffects {
+  partitionBonus: number;
+  grabInterference: number;
+  tightenTolerance: number;
+  satisfactionBonus: number;
+  styleMatchBonus: Record<StylePreference, number>;
+  sceneBonus: Record<CommissionScene, number>;
+}
+
+export interface HairAccessory {
+  id: string;
+  name: string;
+  icon: string;
+  category: AccessoryCategory;
+  color: number;
+  applicableZones: HairZone[];
+  applicableScenes: CommissionScene[];
+  preferredStyles: StylePreference[];
+  effects: AccessoryEffects;
+  description: string;
+  displayPosition: { x: number; y: number; scale: number };
+}
+
+export interface AccessoryCombination {
+  id: string;
+  accessoryIds: string[];
+  targetScene?: CommissionScene;
+  targetLevelId?: number;
+  date: string;
+  satisfactionResult?: number;
+}
+
+export interface AccessoryContribution {
+  accessoryIds: string[];
+  styleMatchBonus: number;
+  sceneBonus: number;
+  satisfactionBonus: number;
+  operationInterference: number;
+  matchedStyles: StylePreference[];
+  matchedScenes: CommissionScene[];
+}
+
+export const HAIR_ACCESSORIES: HairAccessory[] = [
+  {
+    id: 'bow_pink',
+    name: '粉色蝴蝶结',
+    icon: '🎀',
+    category: AccessoryCategory.DECORATION,
+    color: 0xff6b9d,
+    applicableZones: [HairZone.TOP, HairZone.LEFT, HairZone.RIGHT],
+    applicableScenes: [CommissionScene.DATE, CommissionScene.SCHOOL, CommissionScene.WEDDING],
+    preferredStyles: [StylePreference.SWEET, StylePreference.CUTE, StylePreference.ELEGANT],
+    effects: {
+      partitionBonus: 0,
+      grabInterference: 0.15,
+      tightenTolerance: 0,
+      satisfactionBonus: 8,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 5,
+        [StylePreference.CASUAL]: 0,
+        [StylePreference.CUTE]: 8,
+        [StylePreference.COOL]: -3,
+        [StylePreference.MATURE]: -2,
+        [StylePreference.SWEET]: 10,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: 8,
+        [CommissionScene.COMMUTE]: -2,
+        [CommissionScene.STAGE]: 3,
+        [CommissionScene.SPORTS]: -5,
+        [CommissionScene.SCHOOL]: 6,
+        [CommissionScene.WEDDING]: 7,
+      },
+    },
+    description: '甜美可爱的粉色蝴蝶结，适合约会和校园场景，增加满意度但会轻微干扰抓取操作。',
+    displayPosition: { x: -50, y: -80, scale: 1.2 },
+  },
+  {
+    id: 'hair_clip_gold',
+    name: '金色发夹',
+    icon: '📎',
+    category: AccessoryCategory.DECORATION,
+    color: 0xffd700,
+    applicableZones: [HairZone.LEFT, HairZone.RIGHT, HairZone.TOP],
+    applicableScenes: [CommissionScene.COMMUTE, CommissionScene.WEDDING, CommissionScene.DATE],
+    preferredStyles: [StylePreference.ELEGANT, StylePreference.MATURE, StylePreference.SWEET],
+    effects: {
+      partitionBonus: 2,
+      grabInterference: 0.1,
+      tightenTolerance: 0.05,
+      satisfactionBonus: 6,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 8,
+        [StylePreference.CASUAL]: 3,
+        [StylePreference.CUTE]: 2,
+        [StylePreference.COOL]: 4,
+        [StylePreference.MATURE]: 7,
+        [StylePreference.SWEET]: 3,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: 5,
+        [CommissionScene.COMMUTE]: 8,
+        [CommissionScene.STAGE]: 6,
+        [CommissionScene.SPORTS]: -3,
+        [CommissionScene.SCHOOL]: 2,
+        [CommissionScene.WEDDING]: 10,
+      },
+    },
+    description: '精致的金色发夹，优雅大方，提供分区准确度加成，适合婚礼和通勤场景。',
+    displayPosition: { x: 40, y: -75, scale: 1.0 },
+  },
+  {
+    id: 'ribbon_satin',
+    name: '丝缎丝带',
+    icon: '🎗️',
+    category: AccessoryCategory.DECORATION,
+    color: 0xc44dff,
+    applicableZones: [HairZone.BACK, HairZone.TOP],
+    applicableScenes: [CommissionScene.DATE, CommissionScene.WEDDING, CommissionScene.SCHOOL],
+    preferredStyles: [StylePreference.SWEET, StylePreference.ELEGANT, StylePreference.CASUAL],
+    effects: {
+      partitionBonus: 0,
+      grabInterference: 0.2,
+      tightenTolerance: 0.1,
+      satisfactionBonus: 7,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 6,
+        [StylePreference.CASUAL]: 4,
+        [StylePreference.CUTE]: 7,
+        [StylePreference.COOL]: -2,
+        [StylePreference.MATURE]: 2,
+        [StylePreference.SWEET]: 9,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: 9,
+        [CommissionScene.COMMUTE]: 2,
+        [CommissionScene.STAGE]: 4,
+        [CommissionScene.SPORTS]: -4,
+        [CommissionScene.SCHOOL]: 7,
+        [CommissionScene.WEDDING]: 8,
+      },
+    },
+    description: '柔滑的丝缎丝带，增加收紧容错，但丝带容易飘散干扰抓取操作。',
+    displayPosition: { x: 0, y: 30, scale: 1.3 },
+  },
+  {
+    id: 'pearl_chain',
+    name: '珍珠发链',
+    icon: '📿',
+    category: AccessoryCategory.DECORATION,
+    color: 0xfffaf0,
+    applicableZones: [HairZone.TOP, HairZone.BACK],
+    applicableScenes: [CommissionScene.WEDDING, CommissionScene.STAGE, CommissionScene.DATE],
+    preferredStyles: [StylePreference.ELEGANT, StylePreference.MATURE, StylePreference.SWEET],
+    effects: {
+      partitionBonus: -2,
+      grabInterference: 0.25,
+      tightenTolerance: 0,
+      satisfactionBonus: 12,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 12,
+        [StylePreference.CASUAL]: -1,
+        [StylePreference.CUTE]: 4,
+        [StylePreference.COOL]: 3,
+        [StylePreference.MATURE]: 8,
+        [StylePreference.SWEET]: 6,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: 7,
+        [CommissionScene.COMMUTE]: -3,
+        [CommissionScene.STAGE]: 9,
+        [CommissionScene.SPORTS]: -8,
+        [CommissionScene.SCHOOL]: 0,
+        [CommissionScene.WEDDING]: 15,
+      },
+    },
+    description: '奢华的珍珠发链，极大提升美观度和满意度，但操作时容易干扰分区判断。',
+    displayPosition: { x: 0, y: -60, scale: 1.1 },
+  },
+  {
+    id: 'hairspray',
+    name: '定型喷雾',
+    icon: '💨',
+    category: AccessoryCategory.STYLING,
+    color: 0x4ecdc4,
+    applicableZones: [HairZone.TOP, HairZone.BACK, HairZone.LEFT, HairZone.RIGHT],
+    applicableScenes: [CommissionScene.SPORTS, CommissionScene.COMMUTE, CommissionScene.STAGE],
+    preferredStyles: [StylePreference.CASUAL, StylePreference.COOL, StylePreference.MATURE],
+    effects: {
+      partitionBonus: 3,
+      grabInterference: -0.1,
+      tightenTolerance: 0.15,
+      satisfactionBonus: 4,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 2,
+        [StylePreference.CASUAL]: 6,
+        [StylePreference.CUTE]: 0,
+        [StylePreference.COOL]: 5,
+        [StylePreference.MATURE]: 4,
+        [StylePreference.SWEET]: -1,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: 0,
+        [CommissionScene.COMMUTE]: 7,
+        [CommissionScene.STAGE]: 6,
+        [CommissionScene.SPORTS]: 12,
+        [CommissionScene.SCHOOL]: 4,
+        [CommissionScene.WEDDING]: 3,
+      },
+    },
+    description: '专业定型喷雾，有效固定发丝，减少毛躁干扰，提升分区和收紧表现，特别适合运动场景。',
+    displayPosition: { x: -70, y: 0, scale: 0.9 },
+  },
+  {
+    id: 'section_clip',
+    name: '分区夹',
+    icon: '📌',
+    category: AccessoryCategory.FIXING,
+    color: 0x45b7d1,
+    applicableZones: [HairZone.TOP, HairZone.LEFT, HairZone.RIGHT, HairZone.BACK],
+    applicableScenes: [CommissionScene.COMMUTE, CommissionScene.SPORTS, CommissionScene.STAGE],
+    preferredStyles: [StylePreference.CASUAL, StylePreference.COOL, StylePreference.MATURE],
+    effects: {
+      partitionBonus: 8,
+      grabInterference: -0.15,
+      tightenTolerance: 0.05,
+      satisfactionBonus: 2,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 1,
+        [StylePreference.CASUAL]: 5,
+        [StylePreference.CUTE]: -1,
+        [StylePreference.COOL]: 4,
+        [StylePreference.MATURE]: 6,
+        [StylePreference.SWEET]: -2,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: -1,
+        [CommissionScene.COMMUTE]: 8,
+        [CommissionScene.STAGE]: 5,
+        [CommissionScene.SPORTS]: 9,
+        [CommissionScene.SCHOOL]: 3,
+        [CommissionScene.WEDDING]: 0,
+      },
+    },
+    description: '专业造型分区夹，大幅提升分区判断准确度，同时固定非操作区域发丝减少干扰。',
+    displayPosition: { x: 70, y: -30, scale: 0.9 },
+  },
+  {
+    id: 'invisible_elastic',
+    name: '隐形皮筋',
+    icon: '⭕',
+    category: AccessoryCategory.FIXING,
+    color: 0x2c1810,
+    applicableZones: [HairZone.BACK, HairZone.TOP],
+    applicableScenes: [CommissionScene.SPORTS, CommissionScene.COMMUTE, CommissionScene.SCHOOL],
+    preferredStyles: [StylePreference.CASUAL, StylePreference.ELEGANT, StylePreference.COOL],
+    effects: {
+      partitionBonus: 0,
+      grabInterference: -0.05,
+      tightenTolerance: 0.2,
+      satisfactionBonus: 5,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 5,
+        [StylePreference.CASUAL]: 7,
+        [StylePreference.CUTE]: 2,
+        [StylePreference.COOL]: 6,
+        [StylePreference.MATURE]: 6,
+        [StylePreference.SWEET]: 1,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: 4,
+        [CommissionScene.COMMUTE]: 9,
+        [CommissionScene.STAGE]: 4,
+        [CommissionScene.SPORTS]: 10,
+        [CommissionScene.SCHOOL]: 7,
+        [CommissionScene.WEDDING]: 5,
+      },
+    },
+    description: '透明隐形皮筋，几乎不影响美观，有效增加收紧容错度，持久固定不易松脱。',
+    displayPosition: { x: 0, y: 60, scale: 0.8 },
+  },
+  {
+    id: 'small_comb',
+    name: '尖尾小梳子',
+    icon: '🪮',
+    category: AccessoryCategory.STYLING,
+    color: 0x8b4513,
+    applicableZones: [HairZone.TOP, HairZone.LEFT, HairZone.RIGHT, HairZone.BACK],
+    applicableScenes: [CommissionScene.WEDDING, CommissionScene.STAGE, CommissionScene.DATE],
+    preferredStyles: [StylePreference.ELEGANT, StylePreference.MATURE, StylePreference.SWEET],
+    effects: {
+      partitionBonus: 5,
+      grabInterference: -0.1,
+      tightenTolerance: 0.05,
+      satisfactionBonus: 3,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 4,
+        [StylePreference.CASUAL]: 2,
+        [StylePreference.CUTE]: 3,
+        [StylePreference.COOL]: 2,
+        [StylePreference.MATURE]: 5,
+        [StylePreference.SWEET]: 3,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: 5,
+        [CommissionScene.COMMUTE]: 3,
+        [CommissionScene.STAGE]: 7,
+        [CommissionScene.SPORTS]: 1,
+        [CommissionScene.SCHOOL]: 2,
+        [CommissionScene.WEDDING]: 8,
+      },
+    },
+    description: '专业尖尾梳，帮助画出清晰分区线，提升分区准确度和整理发丝减少抓取干扰。',
+    displayPosition: { x: -60, y: -40, scale: 0.9 },
+  },
+  {
+    id: 'color_highlight_pink',
+    name: '粉色挑染片',
+    icon: '💗',
+    category: AccessoryCategory.COLOR,
+    color: 0xff69b4,
+    applicableZones: [HairZone.LEFT, HairZone.RIGHT, HairZone.TOP],
+    applicableScenes: [CommissionScene.STAGE, CommissionScene.DATE, CommissionScene.SCHOOL],
+    preferredStyles: [StylePreference.CUTE, StylePreference.SWEET, StylePreference.COOL],
+    effects: {
+      partitionBonus: 3,
+      grabInterference: 0.05,
+      tightenTolerance: 0,
+      satisfactionBonus: 6,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 1,
+        [StylePreference.CASUAL]: 3,
+        [StylePreference.CUTE]: 10,
+        [StylePreference.COOL]: 7,
+        [StylePreference.MATURE]: -2,
+        [StylePreference.SWEET]: 8,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: 6,
+        [CommissionScene.COMMUTE]: 0,
+        [CommissionScene.STAGE]: 12,
+        [CommissionScene.SPORTS]: 2,
+        [CommissionScene.SCHOOL]: 8,
+        [CommissionScene.WEDDING]: -1,
+      },
+    },
+    description: '时尚粉色挑染片，增添个性色彩，帮助区分不同区域发丝提升分区准确度。',
+    displayPosition: { x: 55, y: 0, scale: 1.0 },
+  },
+  {
+    id: 'color_highlight_blue',
+    name: '冰蓝挑染片',
+    icon: '💙',
+    category: AccessoryCategory.COLOR,
+    color: 0x00bfff,
+    applicableZones: [HairZone.LEFT, HairZone.RIGHT, HairZone.TOP],
+    applicableScenes: [CommissionScene.STAGE, CommissionScene.SPORTS, CommissionScene.SCHOOL],
+    preferredStyles: [StylePreference.COOL, StylePreference.CASUAL, StylePreference.MATURE],
+    effects: {
+      partitionBonus: 3,
+      grabInterference: 0.05,
+      tightenTolerance: 0,
+      satisfactionBonus: 6,
+      styleMatchBonus: {
+        [StylePreference.ELEGANT]: 2,
+        [StylePreference.CASUAL]: 6,
+        [StylePreference.CUTE]: 2,
+        [StylePreference.COOL]: 12,
+        [StylePreference.MATURE]: 4,
+        [StylePreference.SWEET]: 0,
+      },
+      sceneBonus: {
+        [CommissionScene.DATE]: 1,
+        [CommissionScene.COMMUTE]: 4,
+        [CommissionScene.STAGE]: 10,
+        [CommissionScene.SPORTS]: 8,
+        [CommissionScene.SCHOOL]: 6,
+        [CommissionScene.WEDDING]: -2,
+      },
+    },
+    description: '酷炫冰蓝挑染片，打造个性造型，帮助区分不同区域发丝提升分区准确度。',
+    displayPosition: { x: -55, y: 0, scale: 1.0 },
+  },
+];
+
+export const MAX_ACCESSORY_SELECTION = 3;

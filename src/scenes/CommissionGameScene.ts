@@ -8,6 +8,7 @@ import {
   StepReview, GameReviewData, CategoryScore, PerformanceCategory,
   MistakeType, MISTAKE_ADVICE,
   HairFeature, TabooRequirement, CommissionRecord,
+  HAIR_ACCESSORIES, HairAccessory, AccessoryContribution, StylePreference, CommissionScene,
 } from '../constants';
 import { saveCommissionRecord, getBestSatisfactionForCommission } from '../storage';
 
@@ -78,13 +79,25 @@ export class CommissionGameScene extends Phaser.Scene {
   private curlDistractionThisStep: boolean = false;
   private accessoryDistractionThisStep: boolean = false;
   private overTightenCount: number = 0;
+  private selectedAccessoryIds: string[] = [];
+  private selectedAccessories: HairAccessory[] = [];
+  private accessoryPartitionBonus: number = 0;
+  private accessoryGrabInterference: number = 0;
+  private accessoryTightenTolerance: number = 0;
+  private accessorySatisfactionBonus: number = 0;
+  private tightenToleranceBonus: number = 0;
 
   constructor() {
     super({ key: 'CommissionGameScene' });
   }
 
-  init(data: { commissionId: string }) {
+  init(data: { commissionId: string; accessoryIds?: string[] }) {
     this.commissionConfig = COMMISSIONS.find((c) => c.id === data.commissionId) || COMMISSIONS[0];
+    this.selectedAccessoryIds = data.accessoryIds || [];
+    this.selectedAccessories = this.selectedAccessoryIds
+      .map((id) => HAIR_ACCESSORIES.find((a) => a.id === id))
+      .filter((a): a is HairAccessory => !!a);
+    this.calculateAccessoryEffects();
     this.currentStepIndex = 0;
     this.currentPhase = GamePhase.PARTITION;
     this.score = 0;
@@ -179,6 +192,24 @@ export class CommissionGameScene extends Phaser.Scene {
     }
   }
 
+  private calculateAccessoryEffects() {
+    this.accessoryPartitionBonus = 0;
+    this.accessoryGrabInterference = 0;
+    this.accessoryTightenTolerance = 0;
+    this.accessorySatisfactionBonus = 0;
+
+    this.selectedAccessories.forEach((acc) => {
+      this.accessoryPartitionBonus += acc.effects.partitionBonus;
+      this.accessoryGrabInterference += acc.effects.grabInterference;
+      this.accessoryTightenTolerance += acc.effects.tightenTolerance;
+      this.accessorySatisfactionBonus += acc.effects.satisfactionBonus;
+    });
+
+    if (this.selectedAccessories.length > 0) {
+      this.accessoryDistractionThisStep = this.accessoryGrabInterference > 0.05;
+    }
+  }
+
   private setupHeadModel() {
     this.add.image(this.headX, this.headY, 'head-base').setScale(1.3);
     const customer = this.commissionConfig.customer;
@@ -191,7 +222,26 @@ export class CommissionGameScene extends Phaser.Scene {
     hairG.closePath();
     hairG.fillPath();
 
-    if (this.commissionConfig.hasAccessory) {
+    if (this.selectedAccessories.length > 0) {
+      this.selectedAccessories.forEach((acc, i) => {
+        const pos = acc.displayPosition;
+        const accText = this.add.text(
+          this.headX + pos.x,
+          this.headY + pos.y,
+          acc.icon,
+          { fontSize: `${28 * pos.scale}px`, fontFamily: 'system-ui' },
+        ).setOrigin(0.5).setDepth(i + 2);
+
+        this.tweens.add({
+          targets: accText,
+          y: accText.y - 3,
+          duration: 1200 + i * 200,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
+      });
+    } else if (this.commissionConfig.hasAccessory) {
       const acc = this.add.image(this.headX - 40, this.headY - 70, 'accessory').setScale(1.2);
       this.tweens.add({
         targets: acc, y: acc.y - 3, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
@@ -545,7 +595,8 @@ export class CommissionGameScene extends Phaser.Scene {
     za.graphics!.lineStyle(3, 0xffffff, 0.8);
     za.graphics!.strokeRoundedRect(za.x, za.y, za.w, za.h, 8);
     za.label!.setAlpha(1);
-    this.score += 5;
+    const partitionScore = 5 + Math.max(0, this.accessoryPartitionBonus);
+    this.score += partitionScore;
     this.addParticles(za.x + za.w / 2, za.y + za.h / 2, 'particle-gold');
 
     if (this.currentStepReview) {
@@ -855,6 +906,7 @@ export class CommissionGameScene extends Phaser.Scene {
     this.tightenSweetSpot = this.commissionConfig.taboos.includes(TabooRequirement.NO_TIGHT)
       ? 0.35 + Math.random() * 0.15
       : 0.55 + Math.random() * 0.25;
+    this.tightenToleranceBonus = this.accessoryTightenTolerance;
     this.drawTightenBar();
   }
 
@@ -873,12 +925,13 @@ export class CommissionGameScene extends Phaser.Scene {
     g.lineStyle(2, COLORS.primary, 0.4);
     g.strokeRoundedRect(barX - 10, barY - 10, barW + 20, barH + 20, 8);
 
-    const sweetStart = this.tightenSweetSpot - 0.08;
-    const sweetEnd = this.tightenSweetSpot + 0.08;
+    const tol = this.tightenToleranceBonus;
+    const sweetStart = this.tightenSweetSpot - (0.08 + tol * 0.5);
+    const sweetEnd = this.tightenSweetSpot + (0.08 + tol * 0.5);
     g.fillStyle(COLORS.success, 0.25);
     g.fillRect(barX + sweetStart * barW, barY, (sweetEnd - sweetStart) * barW, barH);
-    const perfectStart = this.tightenSweetSpot - 0.03;
-    const perfectEnd = this.tightenSweetSpot + 0.03;
+    const perfectStart = this.tightenSweetSpot - (0.03 + tol * 0.25);
+    const perfectEnd = this.tightenSweetSpot + (0.03 + tol * 0.25);
     g.fillStyle(COLORS.accent, 0.4);
     g.fillRect(barX + perfectStart * barW, barY, (perfectEnd - perfectStart) * barW, barH);
 
@@ -1089,9 +1142,59 @@ export class CommissionGameScene extends Phaser.Scene {
       .map(([k]) => k as MistakeType);
   }
 
+  private calculateAccessoryContribution(): {
+    contribution: AccessoryContribution;
+    addedStyleMatch: number;
+    addedSatisfaction: number;
+  } {
+    let styleMatchBonus = 0;
+    let sceneBonus = 0;
+    let satisfactionBonus = 0;
+    let operationInterference = 0;
+    const matchedStyles: StylePreference[] = [];
+    const matchedScenes: CommissionScene[] = [];
+
+    this.selectedAccessories.forEach((acc) => {
+      satisfactionBonus += acc.effects.satisfactionBonus;
+      operationInterference += acc.effects.grabInterference;
+
+      const customerStyles = this.commissionConfig.preferredStyles;
+      acc.preferredStyles.forEach((s) => {
+        if (customerStyles.includes(s) && !matchedStyles.includes(s)) {
+          matchedStyles.push(s);
+          styleMatchBonus += acc.effects.styleMatchBonus[s] || 0;
+        }
+      });
+
+      const scene = this.commissionConfig.scene;
+      if (acc.applicableScenes.includes(scene) && !matchedScenes.includes(scene)) {
+        matchedScenes.push(scene);
+        sceneBonus += acc.effects.sceneBonus[scene] || 0;
+      }
+    });
+
+    const addedStyleMatch = styleMatchBonus + sceneBonus;
+    const addedSatisfaction = satisfactionBonus;
+
+    return {
+      contribution: {
+        accessoryIds: this.selectedAccessoryIds,
+        styleMatchBonus,
+        sceneBonus,
+        satisfactionBonus,
+        operationInterference,
+        matchedStyles,
+        matchedScenes,
+      },
+      addedStyleMatch,
+      addedSatisfaction,
+    };
+  }
+
   private calculateSatisfaction(review: GameReviewData): {
     satisfaction: number;
     breakdown: { styleMatch: number; operationAccuracy: number; timeEfficiency: number; mistakePenalty: number };
+    accessoryContribution: AccessoryContribution | null;
   } {
     const totalDuration = review.totalDuration;
     const accuracy = review.accuracy;
@@ -1100,6 +1203,14 @@ export class CommissionGameScene extends Phaser.Scene {
     const hairFeatures = this.commissionConfig.customer.hairFeatures;
     if (hairFeatures.includes(HairFeature.CURLY) && this.commissionConfig.hasCurlInterference) styleMatch += 10;
     if (hairFeatures.includes(HairFeature.THICK) && this.commissionConfig.hairVolume >= 1.4) styleMatch += 5;
+
+    let accessoryContribution: AccessoryContribution | null = null;
+    if (this.selectedAccessories.length > 0) {
+      const accRes = this.calculateAccessoryContribution();
+      styleMatch += accRes.addedStyleMatch;
+      accessoryContribution = accRes.contribution;
+    }
+
     styleMatch = Math.min(100, styleMatch);
 
     const operationAccuracy = accuracy;
@@ -1131,7 +1242,11 @@ export class CommissionGameScene extends Phaser.Scene {
     const weightedStyle = styleMatch * 0.3;
     const weightedAcc = operationAccuracy * 0.35;
     const weightedTime = timeEfficiency * 0.2;
-    const satisfaction = Math.max(0, Math.min(100, Math.round(weightedStyle + weightedAcc + weightedTime - mistakePenalty)));
+    let satisfaction = Math.max(0, Math.min(100, Math.round(weightedStyle + weightedAcc + weightedTime - mistakePenalty)));
+
+    if (accessoryContribution) {
+      satisfaction = Math.min(100, satisfaction + accessoryContribution.satisfactionBonus);
+    }
 
     return {
       satisfaction,
@@ -1141,6 +1256,7 @@ export class CommissionGameScene extends Phaser.Scene {
         timeEfficiency: Math.round(timeEfficiency),
         mistakePenalty: Math.round(mistakePenalty),
       },
+      accessoryContribution,
     };
   }
 
@@ -1151,7 +1267,8 @@ export class CommissionGameScene extends Phaser.Scene {
     this.accuracy = this.totalNotes > 0 ? (this.totalHits / this.totalNotes) * 100 : 0;
     const timeBonus = success ? Math.floor(this.timeRemaining * 0.5) : 0;
     const comboBonus = this.maxCombo * 2;
-    this.score += timeBonus + comboBonus;
+    const accessoryBonus = this.accessorySatisfactionBonus;
+    this.score += timeBonus + comboBonus + accessoryBonus;
 
     const totalDuration = (Date.now() - this.gameStartTime) / 1000;
     const categoryScores = this.buildCategoryScores();
@@ -1166,6 +1283,9 @@ export class CommissionGameScene extends Phaser.Scene {
     };
 
     const satResult = this.calculateSatisfaction(review);
+
+    const previousBest = getBestSatisfactionForCommission(this.commissionConfig.id);
+    const isNewRecord = satResult.satisfaction > previousBest && satResult.satisfaction > 0;
 
     const record: CommissionRecord = {
       commissionId: this.commissionConfig.id,
@@ -1183,7 +1303,13 @@ export class CommissionGameScene extends Phaser.Scene {
     saveCommissionRecord(record);
 
     this.time.delayedCall(500, () => {
-      this.scene.start('CommissionGameOverScene', { record });
+      this.scene.start('CommissionGameOverScene', {
+        record,
+        review,
+        isNewRecord,
+        commissionConfig: this.commissionConfig,
+        accessoryContribution: satResult.accessoryContribution,
+      });
     });
   }
 }

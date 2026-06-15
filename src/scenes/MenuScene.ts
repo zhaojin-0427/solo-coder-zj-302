@@ -50,21 +50,25 @@ export class MenuScene extends Phaser.Scene {
 
     this.add.image(GAME_WIDTH / 2, 310, 'head-base').setScale(1.1);
 
-    this.createMenuButton(GAME_WIDTH / 2 - 165, 440, '开始挑战', 'btn-primary', () => {
+    this.createMenuButton(GAME_WIDTH / 2 - 200, 430, '开始挑战', 'btn-primary', () => {
       this.scene.start('LevelSelectScene');
-    });
+    }, 0.95);
 
-    this.createMenuButton(GAME_WIDTH / 2, 440, '💼 委托订单', 'btn-accent', () => {
+    this.createMenuButton(GAME_WIDTH / 2, 430, '💼 委托订单', 'btn-accent', () => {
       this.scene.start('CommissionListScene');
-    });
+    }, 0.95);
 
-    this.createMenuButton(GAME_WIDTH / 2 + 165, 440, '编发学堂', 'btn-secondary', () => {
+    this.createMenuButton(GAME_WIDTH / 2 + 200, 430, '编发学堂', 'btn-secondary', () => {
       this.scene.start('LearnScene');
-    });
+    }, 0.95);
 
-    this.createMenuButton(GAME_WIDTH / 2, 500, '📚 练习记录', 'btn-secondary', () => {
+    this.createMenuButton(GAME_WIDTH / 2 - 120, 490, '💄 造型准备间', 'btn-accent', () => {
+      this.scene.start('AccessoryPrepScene');
+    }, 0.85);
+
+    this.createMenuButton(GAME_WIDTH / 2 + 120, 490, '📚 练习记录', 'btn-secondary', () => {
       this.scene.start('PracticeRecordScene');
-    }, 0.9);
+    }, 0.85);
 
     const hs = getHighScore(1);
     if (hs > 0) {

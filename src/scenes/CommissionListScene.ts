@@ -308,7 +308,7 @@ export class CommissionListScene extends Phaser.Scene {
     this.detailElements.push(rewardText);
     y += 24;
 
-    const startBtn = this.createButton(GAME_WIDTH / 2 + 195, y, '✨ 开始委托', 'btn-primary', () => {
+    const startBtn = this.createButton(GAME_WIDTH / 2 + 195, y, '💄 造型准备', 'btn-primary', () => {
       this.startCommission(commission);
     }, 0.75);
     this.detailElements.push(...startBtn);
@@ -420,7 +420,7 @@ export class CommissionListScene extends Phaser.Scene {
   }
 
   private startCommission(commission: CommissionConfig) {
-    this.scene.start('CommissionGameScene', { commissionId: commission.id });
+    this.scene.start('AccessoryPrepScene', { mode: 'commission', commissionId: commission.id });
   }
 
   private createButton(x: number, y: number, text: string, texture: string, callback: () => void, scale: number = 0.8): Phaser.GameObjects.GameObject[] {

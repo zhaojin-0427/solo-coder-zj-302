@@ -2,17 +2,31 @@ import Phaser from 'phaser';
 import {
   GAME_WIDTH, GAME_HEIGHT, COLORS, CommissionRecord, COMMISSIONS,
   COMMISSION_SCENE_NAMES, COMMISSION_SCENE_ICONS, MISTAKE_NAMES,
+  HAIR_ACCESSORIES, AccessoryContribution,
+  STYLE_PREFERENCE_NAMES,
 } from '../constants';
 
 export class CommissionGameOverScene extends Phaser.Scene {
   private record: CommissionRecord | null = null;
+  private accessoryContribution: AccessoryContribution | null = null;
+  private isNewRecord: boolean = false;
+  private accessoryIds: string[] = [];
 
   constructor() {
     super({ key: 'CommissionGameOverScene' });
   }
 
-  init(data: { record: CommissionRecord }) {
+  init(data: {
+    record: CommissionRecord;
+    review?: any;
+    isNewRecord?: boolean;
+    commissionConfig?: any;
+    accessoryContribution?: AccessoryContribution | null;
+  }) {
     this.record = data.record || null;
+    this.accessoryContribution = data.accessoryContribution || null;
+    this.isNewRecord = data.isNewRecord || false;
+    this.accessoryIds = this.accessoryContribution?.accessoryIds || [];
   }
 
   create() {
@@ -44,6 +58,15 @@ export class CommissionGameOverScene extends Phaser.Scene {
       fontSize: '13px', fontFamily: 'system-ui', color: '#d2b4de',
     }).setOrigin(0.5);
 
+    if (this.isNewRecord) {
+      const badge = this.add.text(GAME_WIDTH / 2, 78, '🏆 新纪录！', {
+        fontSize: '14px', fontFamily: 'system-ui', color: '#ff6b9d', fontStyle: 'bold',
+      }).setOrigin(0.5);
+      this.tweens.add({
+        targets: badge, scaleX: 1.15, scaleY: 1.15, duration: 600, yoyo: true, repeat: -1,
+      });
+    }
+
     this.drawBigSatisfaction(135, record.satisfaction);
 
     const breakdownY = 220;
@@ -54,35 +77,91 @@ export class CommissionGameOverScene extends Phaser.Scene {
     this.createSmallScoreCard(scoreY, '操作准确率', `${record.accuracy}%`, COLORS.success, 1);
     this.createSmallScoreCard(scoreY, '完成用时', `${Math.round(record.duration)}s`, COLORS.primary, 2);
 
+    const accessoryY = 375;
+    this.drawAccessoryContribution(accessoryY);
+
     if (commission) {
-      const rewardY = 378;
+      const rewardY = 445;
       this.drawRewards(rewardY, commission);
     }
 
-    const mistakeY = 430;
+    const mistakeY = 498;
     this.drawMistakeTags(mistakeY, record.mainMistakeTypes);
 
     const statusText = record.success ? '✨ 委托完成！顾客很满意～' : '⏰ 委托超时，下次加油！';
     const statusColor = record.success ? '#2ecc71' : '#f39c12';
-    this.add.text(GAME_WIDTH / 2, 495, statusText, {
+    this.add.text(GAME_WIDTH / 2, 540, statusText, {
       fontSize: '15px', fontFamily: 'system-ui', color: statusColor, fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this.createButton(GAME_WIDTH / 2 - 210, 545, '再来一单', 'btn-primary', () => {
+    this.createButton(GAME_WIDTH / 2 - 210, 585, '再来一单', 'btn-primary', () => {
       this.scene.start('CommissionListScene');
     }, 0.7);
 
-    this.createButton(GAME_WIDTH / 2 - 60, 545, '查看历史', 'btn-accent', () => {
+    this.createButton(GAME_WIDTH / 2 - 60, 585, '查看历史', 'btn-accent', () => {
       this.scene.start('CommissionHistoryScene');
     }, 0.7);
 
-    this.createButton(GAME_WIDTH / 2 + 90, 545, '主菜单', 'btn-secondary', () => {
+    this.createButton(GAME_WIDTH / 2 + 90, 585, '主菜单', 'btn-secondary', () => {
       this.scene.start('MenuScene');
     }, 0.7);
 
-    this.createButton(GAME_WIDTH / 2, 585, '再做一次这个委托', 'btn-secondary', () => {
-      this.scene.start('CommissionGameScene', { commissionId: record.commissionId });
+    this.createButton(GAME_WIDTH / 2, 625, '再做一次这个委托', 'btn-secondary', () => {
+      this.scene.start('CommissionGameScene', { commissionId: record.commissionId, accessoryIds: this.accessoryIds });
     }, 0.6);
+  }
+
+  private drawAccessoryContribution(startY: number) {
+    const cardW = GAME_WIDTH - 160;
+    const cardX = (GAME_WIDTH - cardW) / 2;
+    const cardH = 62;
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x2a1a3e, 0.95);
+    bg.fillRoundedRect(cardX, startY, cardW, cardH, 10);
+    bg.lineStyle(1.5, COLORS.accent, 0.35);
+    bg.strokeRoundedRect(cardX, startY, cardW, cardH, 10);
+
+    this.add.text(cardX + 15, startY + 8, '💎 造型搭配贡献', {
+      fontSize: '13px', fontFamily: 'system-ui', color: '#ffb6c1', fontStyle: 'bold',
+    });
+
+    if (!this.accessoryContribution || this.accessoryIds.length === 0) {
+      this.add.text(cardX + cardW / 2, startY + cardH / 2 + 5, '本次未使用造型搭配', {
+        fontSize: '12px', fontFamily: 'system-ui', color: '#8a7a9d',
+      }).setOrigin(0.5);
+      return;
+    }
+
+    const acc = this.accessoryContribution;
+    const accNames = this.accessoryIds
+      .map((id) => HAIR_ACCESSORIES.find((a) => a.id === id))
+      .filter((a) => !!a)
+      .map((a) => `${a!.icon}${a!.name}`)
+      .join('、');
+
+    this.add.text(cardX + 15, startY + 28, `使用：${accNames}`, {
+      fontSize: '11px', fontFamily: 'system-ui', color: '#d2b4de',
+    });
+
+    const totalStyleBonus = acc.styleMatchBonus + acc.sceneBonus;
+    let infoText = `造型+${totalStyleBonus}`;
+    if (acc.satisfactionBonus > 0) infoText += `  满意+${acc.satisfactionBonus}`;
+    if (acc.operationInterference > 0) infoText += `  干扰${(acc.operationInterference * 100).toFixed(0)}%`;
+
+    this.add.text(cardX + 15, startY + 46, infoText, {
+      fontSize: '11px', fontFamily: 'system-ui', color: '#ffd700', fontStyle: 'bold',
+    });
+
+    if (acc.matchedStyles.length > 0 || acc.matchedScenes.length > 0) {
+      const matchParts: string[] = [];
+      acc.matchedStyles.forEach((s) => matchParts.push(STYLE_PREFERENCE_NAMES[s as keyof typeof STYLE_PREFERENCE_NAMES] || s));
+      acc.matchedScenes.forEach((s) => matchParts.push(COMMISSION_SCENE_NAMES[s as keyof typeof COMMISSION_SCENE_NAMES] || s));
+      const matchText = `✨ 命中偏好：${matchParts.join('、')}`;
+      this.add.text(cardX + cardW - 15, startY + 46, matchText, {
+        fontSize: '11px', fontFamily: 'system-ui', color: '#2ecc71', fontStyle: 'bold',
+      }).setOrigin(1, 0);
+    }
   }
 
   private drawBigSatisfaction(centerY: number, satisfaction: number) {
