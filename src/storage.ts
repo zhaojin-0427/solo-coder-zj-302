@@ -1,4 +1,4 @@
-import { ScoreRecord, LEVELS, PracticeRecord, GameReviewData, CommissionRecord, AccessoryCombination } from './constants';
+import { ScoreRecord, LEVELS, PracticeRecord, GameReviewData, CommissionRecord } from './constants';
 
 const STORAGE_KEY = 'braiding_challenge_scores';
 const PRACTICE_KEY = 'braiding_challenge_practice_records';
@@ -127,52 +127,4 @@ export function getBestSatisfactionForCommission(commissionId: string): number {
 
 export function clearCommissionRecords(): void {
   localStorage.removeItem(COMMISSION_KEY);
-}
-
-const ACCESSORY_COMBINATION_KEY = 'braiding_challenge_accessory_combinations';
-const MAX_ACCESSORY_COMBINATIONS = 5;
-const ACCESSORY_USAGE_KEY = 'braiding_challenge_accessory_usage';
-
-export function saveAccessoryCombination(combination: AccessoryCombination): void {
-  const records = getAccessoryCombinations();
-  records.unshift(combination);
-  const trimmed = records.slice(0, MAX_ACCESSORY_COMBINATIONS);
-  localStorage.setItem(ACCESSORY_COMBINATION_KEY, JSON.stringify(trimmed));
-
-  const usage = getAccessoryUsage();
-  combination.accessoryIds.forEach((id) => {
-    usage[id] = (usage[id] || 0) + 1;
-  });
-  localStorage.setItem(ACCESSORY_USAGE_KEY, JSON.stringify(usage));
-}
-
-export function getAccessoryCombinations(): AccessoryCombination[] {
-  try {
-    const data = localStorage.getItem(ACCESSORY_COMBINATION_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function clearAccessoryCombinations(): void {
-  localStorage.removeItem(ACCESSORY_COMBINATION_KEY);
-}
-
-export function getAccessoryUsage(): Record<string, number> {
-  try {
-    const data = localStorage.getItem(ACCESSORY_USAGE_KEY);
-    return data ? JSON.parse(data) : {};
-  } catch {
-    return {};
-  }
-}
-
-export function getAccessoryUsageCount(accessoryId: string): number {
-  const usage = getAccessoryUsage();
-  return usage[accessoryId] || 0;
-}
-
-export function clearAccessoryUsage(): void {
-  localStorage.removeItem(ACCESSORY_USAGE_KEY);
 }

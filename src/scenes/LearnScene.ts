@@ -2,8 +2,6 @@ import Phaser from 'phaser';
 import {
   GAME_WIDTH, GAME_HEIGHT, COLORS, LEARNING_CONTENT, BRAID_NAMES, BraidType,
   MISTAKE_ADVICE, CATEGORY_NAMES, PerformanceCategory, CATEGORY_ICONS,
-  HAIR_ACCESSORIES, ACCESSORY_CATEGORY_NAMES, ACCESSORY_CATEGORY_ICONS, AccessoryCategory,
-  COMMISSION_SCENE_NAMES, STYLE_PREFERENCE_NAMES,
 } from '../constants';
 
 export class LearnScene extends Phaser.Scene {
@@ -72,8 +70,6 @@ export class LearnScene extends Phaser.Scene {
 
     if ((content as any).isMistakeGuide) {
       this.renderMistakeGuide();
-    } else if ((content as any).isAccessoryGuide) {
-      this.renderAccessoryGuide();
     } else {
       this.renderStandardContent();
     }
@@ -165,158 +161,6 @@ export class LearnScene extends Phaser.Scene {
     } else {
       this.showBraidDiagram(content.type, tipsStartY + 15);
     }
-  }
-
-  private renderAccessoryGuide() {
-    const content = LEARNING_CONTENT[this.currentPage];
-    const baseY = 100;
-    const contentHeight = 440;
-    const availableW = GAME_WIDTH - 100;
-
-    this.contentContainer = this.add.container(50, baseY);
-    this.pageElements.push(this.contentContainer);
-
-    const scrollBg = this.add.graphics();
-    scrollBg.fillStyle(0x1a0a2e, 0.01);
-    scrollBg.fillRect(0, baseY - 5, GAME_WIDTH, contentHeight + 10);
-    this.pageElements.push(scrollBg);
-
-    let y = 0;
-
-    const introText = this.add.text(20, y, content.content, {
-      fontSize: '13px',
-      fontFamily: 'system-ui',
-      color: '#e8d8f0',
-      wordWrap: { width: availableW - 40, useAdvancedWrap: true },
-      lineSpacing: 5,
-    });
-    this.contentContainer.add(introText);
-    y += introText.height + 15;
-
-    const tipsTitle = this.add.text(20, y, '💡 场景搭配建议', {
-      fontSize: '14px',
-      fontFamily: 'system-ui',
-      color: '#ffd700',
-      fontStyle: 'bold',
-    });
-    this.contentContainer.add(tipsTitle);
-    y += 25;
-
-    content.tips.forEach((tip) => {
-      const tipText = this.add.text(30, y, `• ${tip}`, {
-        fontSize: '12px',
-        fontFamily: 'system-ui',
-        color: '#ffb6c1',
-        wordWrap: { width: availableW - 60, useAdvancedWrap: true },
-      });
-      this.contentContainer!.add(tipText);
-      y += tipText.height + 6;
-    });
-    y += 10;
-
-    const catTitle = this.add.text(20, y, '🎀 发饰分类速查', {
-      fontSize: '14px',
-      fontFamily: 'system-ui',
-      color: '#ffd700',
-      fontStyle: 'bold',
-    });
-    this.contentContainer.add(catTitle);
-    y += 26;
-
-    const categoryOrder = [
-      AccessoryCategory.DECORATION,
-      AccessoryCategory.FIXING,
-      AccessoryCategory.STYLING,
-      AccessoryCategory.COLOR,
-    ];
-
-    categoryOrder.forEach((cat) => {
-      const catIcon = ACCESSORY_CATEGORY_ICONS[cat];
-      const catName = ACCESSORY_CATEGORY_NAMES[cat];
-      const items = HAIR_ACCESSORIES.filter((a) => a.category === cat);
-
-      if (items.length === 0) return;
-
-      const catLabel = this.add.text(20, y, `${catIcon} ${catName}`, {
-        fontSize: '13px',
-        fontFamily: 'system-ui',
-        color: '#ffb6c1',
-        fontStyle: 'bold',
-      });
-      this.contentContainer!.add(catLabel);
-      y += 22;
-
-      items.forEach((acc) => {
-        const cardW = availableW - 40;
-        const cardH = 70;
-        const cardBg = this.add.graphics();
-        cardBg.fillStyle(0x2a1a3e, 0.9);
-        cardBg.lineStyle(1, acc.color, 0.4);
-        cardBg.fillRoundedRect(20, y, cardW, cardH, 8);
-        cardBg.strokeRoundedRect(20, y, cardW, cardH, 8);
-        this.contentContainer!.add(cardBg);
-
-        const iconText = this.add.text(40, y + 14, `${acc.icon} ${acc.name}`, {
-          fontSize: '13px',
-          fontFamily: 'system-ui',
-          color: '#ffffff',
-          fontStyle: 'bold',
-        });
-        this.contentContainer!.add(iconText);
-
-        const descText = this.add.text(40, y + 34, acc.description, {
-          fontSize: '11px',
-          fontFamily: 'system-ui',
-          color: '#c4a8d4',
-          wordWrap: { width: cardW - 160, useAdvancedWrap: true },
-        });
-        this.contentContainer!.add(descText);
-
-        const sceneNames = acc.applicableScenes
-          .map((s) => COMMISSION_SCENE_NAMES[s as keyof typeof COMMISSION_SCENE_NAMES] || s)
-          .slice(0, 3)
-          .join('·');
-        const sceneText = this.add.text(cardW + 5, y + 14, `场景:${sceneNames}`, {
-          fontSize: '10px',
-          fontFamily: 'system-ui',
-          color: '#8a7a9d',
-        }).setOrigin(1, 0);
-        this.contentContainer!.add(sceneText);
-
-        const styleNames = acc.preferredStyles
-          .map((s) => STYLE_PREFERENCE_NAMES[s as keyof typeof STYLE_PREFERENCE_NAMES] || s)
-          .slice(0, 3)
-          .join('·');
-        const styleText = this.add.text(cardW + 5, y + 30, `风格:${styleNames}`, {
-          fontSize: '10px',
-          fontFamily: 'system-ui',
-          color: '#8a7a9d',
-        }).setOrigin(1, 0);
-        this.contentContainer!.add(styleText);
-
-        const effectParts: string[] = [];
-        if (acc.effects.partitionBonus > 0) effectParts.push(`分区+${acc.effects.partitionBonus}`);
-        if (acc.effects.tightenTolerance > 0) effectParts.push(`容错+${acc.effects.tightenTolerance.toFixed(2)}`);
-        if (acc.effects.satisfactionBonus > 0) effectParts.push(`颜值+${acc.effects.satisfactionBonus}`);
-        if (acc.effects.grabInterference > 0) effectParts.push(`干扰${(acc.effects.grabInterference * 100).toFixed(0)}%`);
-        if (effectParts.length > 0) {
-          const effectText = this.add.text(cardW + 5, y + 50, effectParts.join(' '), {
-            fontSize: '10px',
-            fontFamily: 'system-ui',
-            color: '#ffd700',
-          }).setOrigin(1, 0);
-          this.contentContainer!.add(effectText);
-        }
-
-        y += cardH + 6;
-      });
-      y += 8;
-    });
-
-    this.contentHeightEnd = y;
-    this.calculateMaxScroll(baseY, contentHeight);
-    this.enableScroll(baseY, contentHeight);
-    this.drawScrollIndicator(baseY, contentHeight);
   }
 
   private renderMistakeGuide() {

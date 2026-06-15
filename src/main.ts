@@ -12,7 +12,6 @@ import { CommissionListScene } from './scenes/CommissionListScene';
 import { CommissionHistoryScene } from './scenes/CommissionHistoryScene';
 import { CommissionGameScene } from './scenes/CommissionGameScene';
 import { CommissionGameOverScene } from './scenes/CommissionGameOverScene';
-import { AccessoryPrepScene } from './scenes/AccessoryPrepScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -20,7 +19,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: GAME_HEIGHT,
   parent: 'game-container',
   backgroundColor: '#1a0a2e',
-  scene: [BootScene, MenuScene, LevelSelectScene, GameScene, GameOverScene, LearnScene, ReviewScene, PracticeRecordScene, CommissionListScene, CommissionHistoryScene, CommissionGameScene, CommissionGameOverScene, AccessoryPrepScene],
+  scene: [BootScene, MenuScene, LevelSelectScene, GameScene, GameOverScene, LearnScene, ReviewScene, PracticeRecordScene, CommissionListScene, CommissionHistoryScene, CommissionGameScene, CommissionGameOverScene],
   physics: {
     default: 'arcade',
     arcade: {
