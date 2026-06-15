@@ -6,7 +6,7 @@ import {
   StepReview, GameReviewData, CategoryScore, PerformanceCategory,
   MistakeType, MISTAKE_ADVICE, CATEGORY_ADVICE_TEMPLATES,
 } from '../constants';
-import { saveScore, saveReviewToPractice } from '../storage';
+import { saveScore, saveReviewToPractice, getHighScore } from '../storage';
 
 interface ZoneArea {
   zone: HairZone;
@@ -1460,6 +1460,9 @@ export class GameScene extends Phaser.Scene {
     const comboBonus = this.maxCombo * 2;
     this.score += timeBonus + comboBonus;
 
+    const previousHighScore = getHighScore(this.levelConfig.id);
+    const isNewRecord = this.score > previousHighScore && this.score > 0;
+
     saveScore({
       level: this.levelConfig.id,
       score: this.score,
@@ -1481,6 +1484,7 @@ export class GameScene extends Phaser.Scene {
         timeBonus,
         comboBonus,
         reviewData: review,
+        isNewRecord,
       });
     });
   }

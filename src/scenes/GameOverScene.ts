@@ -4,7 +4,6 @@ import {
   GameReviewData, CATEGORY_NAMES, CATEGORY_ICONS,
   MISTAKE_ADVICE, CATEGORY_ADVICE_TEMPLATES, PerformanceCategory,
 } from '../constants';
-import { getHighScore } from '../storage';
 
 export class GameOverScene extends Phaser.Scene {
   private reviewData: GameReviewData | null = null;
@@ -23,6 +22,7 @@ export class GameOverScene extends Phaser.Scene {
     timeBonus: number;
     comboBonus: number;
     reviewData?: GameReviewData;
+    isNewRecord?: boolean;
   }) {
     this.data.set(data);
     this.reviewData = data.reviewData || null;
@@ -44,6 +44,7 @@ export class GameOverScene extends Phaser.Scene {
       success: this.data.get('success') || false,
       timeBonus: this.data.get('timeBonus') || 0,
       comboBonus: this.data.get('comboBonus') || 0,
+      isNewRecord: this.data.get('isNewRecord') || false,
     };
 
     const title = data.success ? '🎉 编发完成！' : '⏰ 时间到！';
@@ -116,8 +117,7 @@ export class GameOverScene extends Phaser.Scene {
       }).setOrigin(0.5);
     }
 
-    const hs = getHighScore(data.levelId);
-    if (data.score >= hs && data.score > 0) {
+    if (data.isNewRecord) {
       const newRecord = this.add.text(GAME_WIDTH / 2, 485, '🏆 新纪录！', {
         fontSize: '16px',
         fontFamily: 'system-ui',

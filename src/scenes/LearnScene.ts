@@ -9,6 +9,14 @@ export class LearnScene extends Phaser.Scene {
   private pageElements: Phaser.GameObjects.GameObject[] = [];
   private totalPages: number = 0;
 
+  private scrollY: number = 0;
+  private contentContainer: Phaser.GameObjects.Container | null = null;
+  private maxScroll: number = 0;
+  private contentHeightEnd: number = 0;
+  private isDragging: boolean = false;
+  private dragStartY: number = 0;
+  private dragStartScroll: number = 0;
+
   constructor() {
     super({ key: 'LearnScene' });
   }
@@ -22,6 +30,11 @@ export class LearnScene extends Phaser.Scene {
   private showPage() {
     this.pageElements.forEach((el) => el.destroy());
     this.pageElements = [];
+    this.contentContainer = null;
+    this.scrollY = 0;
+    this.maxScroll = 0;
+    this.contentHeightEnd = 0;
+    this.isDragging = false;
 
     const bg = this.add.graphics();
     bg.fillStyle(0x1a0a2e, 1);
@@ -151,14 +164,28 @@ export class LearnScene extends Phaser.Scene {
   }
 
   private renderMistakeGuide() {
-    const categoryY = 100;
-    const catTitle = this.add.text(70, categoryY, '📊 失误四大分类', {
+    const baseY = 100;
+    const contentHeight = 440;
+    const availableW = GAME_WIDTH - 100;
+
+    this.contentContainer = this.add.container(50, baseY);
+    this.pageElements.push(this.contentContainer);
+
+    const scrollBg = this.add.graphics();
+    scrollBg.fillStyle(0x1a0a2e, 0.01);
+    scrollBg.fillRect(0, baseY - 5, GAME_WIDTH, contentHeight + 10);
+    this.pageElements.push(scrollBg);
+
+    let y = 0;
+
+    const catTitle = this.add.text(20, y, '📊 失误四大分类', {
       fontSize: '16px',
       fontFamily: 'system-ui',
       color: '#ffd700',
       fontStyle: 'bold',
     });
-    this.pageElements.push(catTitle);
+    this.contentContainer.add(catTitle);
+    y += 28;
 
     const catKeys = [
       PerformanceCategory.PARTITION,
@@ -167,95 +194,167 @@ export class LearnScene extends Phaser.Scene {
       PerformanceCategory.TIGHTEN,
     ];
 
-    const catWidth = 160;
-    const catGap = 10;
-    const catStartX = (GAME_WIDTH - (catWidth * 4 + catGap * 3)) / 2;
-    const catCardY = categoryY + 30;
+    const catWidth = 155;
+    const catGap = 8;
+    const catStartX = (availableW - (catWidth * 4 + catGap * 3)) / 2;
 
     catKeys.forEach((ck, i) => {
       const cx = catStartX + i * (catWidth + catGap);
       const catBg = this.add.graphics();
       catBg.fillStyle(0x2a1a3e, 0.9);
       catBg.lineStyle(1.5, COLORS.secondary, 0.4);
-      catBg.fillRoundedRect(cx, catCardY, catWidth, 60, 8);
-      catBg.strokeRoundedRect(cx, catCardY, catWidth, 60, 8);
-      this.pageElements.push(catBg);
+      catBg.fillRoundedRect(cx, y, catWidth, 60, 8);
+      catBg.strokeRoundedRect(cx, y, catWidth, 60, 8);
+      this.contentContainer!.add(catBg);
 
       const icon = CATEGORY_ICONS[ck];
       const name = CATEGORY_NAMES[ck];
       const catCount = MISTAKE_ADVICE.filter(a => a.category === ck).length;
 
-      const iconText = this.add.text(cx + catWidth / 2, catCardY + 18, `${icon} ${name}`, {
+      const iconText = this.add.text(cx + catWidth / 2, y + 18, `${icon} ${name}`, {
         fontSize: '13px',
         fontFamily: 'system-ui',
         color: '#ffb6c1',
         fontStyle: 'bold',
       }).setOrigin(0.5);
-      this.pageElements.push(iconText);
+      this.contentContainer!.add(iconText);
 
-      const countText = this.add.text(cx + catWidth / 2, catCardY + 40, `${catCount} 种常见失误`, {
+      const countText = this.add.text(cx + catWidth / 2, y + 40, `${catCount} 种常见失误`, {
         fontSize: '11px',
         fontFamily: 'system-ui',
         color: '#888888',
       }).setOrigin(0.5);
-      this.pageElements.push(countText);
+      this.contentContainer!.add(countText);
     });
+    y += 75;
 
-    const listStartY = catCardY + 80;
-    const listTitle = this.add.text(70, listStartY, '📝 常见失误详解 & 纠正方法', {
+    const listTitle = this.add.text(20, y, '📝 常见失误详解 & 纠正方法', {
       fontSize: '16px',
       fontFamily: 'system-ui',
       color: '#ffd700',
       fontStyle: 'bold',
     });
-    this.pageElements.push(listTitle);
+    this.contentContainer.add(listTitle);
+    y += 30;
 
-    let cardY = listStartY + 30;
     MISTAKE_ADVICE.forEach((advice, idx) => {
-      if (cardY > 500) return;
-      const cardH = 85;
+      const cardH = 90;
       const cardBg = this.add.graphics();
       cardBg.fillStyle(0x2a1a3e, 0.85);
       cardBg.lineStyle(1, COLORS.primary, 0.3);
-      cardBg.fillRoundedRect(50, cardY, GAME_WIDTH - 100, cardH, 8);
-      cardBg.strokeRoundedRect(50, cardY, GAME_WIDTH - 100, cardH, 8);
-      this.pageElements.push(cardBg);
+      cardBg.fillRoundedRect(0, y, availableW, cardH, 8);
+      cardBg.strokeRoundedRect(0, y, availableW, cardH, 8);
+      this.contentContainer!.add(cardBg);
 
       const catIcon = CATEGORY_ICONS[advice.category];
-      const aTitle = this.add.text(70, cardY + 12, `${catIcon} ${idx + 1}. ${advice.title}`, {
+      const aTitle = this.add.text(20, y + 12, `${catIcon} ${idx + 1}. ${advice.title}`, {
         fontSize: '13px',
         fontFamily: 'system-ui',
         color: '#ffb6c1',
         fontStyle: 'bold',
       });
-      this.pageElements.push(aTitle);
+      this.contentContainer!.add(aTitle);
 
-      const aCat = this.add.text(GAME_WIDTH - 70, cardY + 12, CATEGORY_NAMES[advice.category], {
+      const aCat = this.add.text(availableW - 20, y + 12, CATEGORY_NAMES[advice.category], {
         fontSize: '10px',
         fontFamily: 'system-ui',
         color: '#999999',
       }).setOrigin(1, 0);
-      this.pageElements.push(aCat);
+      this.contentContainer!.add(aCat);
 
-      const aDesc = this.add.text(70, cardY + 32, advice.description, {
+      const aDesc = this.add.text(20, y + 32, advice.description, {
         fontSize: '11px',
         fontFamily: 'system-ui',
         color: '#c4a8d4',
-        wordWrap: { width: GAME_WIDTH - 200, useAdvancedWrap: true },
+        wordWrap: { width: availableW - 130, useAdvancedWrap: true },
       });
-      this.pageElements.push(aDesc);
+      this.contentContainer!.add(aDesc);
 
       const tipText = `💡 ${advice.tips[0]}`;
-      const aTip = this.add.text(70, cardY + 62, tipText, {
+      const aTip = this.add.text(20, y + 66, tipText, {
         fontSize: '11px',
         fontFamily: 'system-ui',
         color: '#2ecc71',
-        wordWrap: { width: GAME_WIDTH - 140, useAdvancedWrap: true },
+        wordWrap: { width: availableW - 60, useAdvancedWrap: true },
       });
-      this.pageElements.push(aTip);
+      this.contentContainer!.add(aTip);
 
-      cardY += cardH + 6;
+      y += cardH + 8;
     });
+
+    this.contentHeightEnd = y;
+    this.calculateMaxScroll(baseY, contentHeight);
+    this.enableScroll(baseY, contentHeight);
+    this.drawScrollIndicator(baseY, contentHeight);
+  }
+
+  private calculateMaxScroll(baseY: number, contentHeight: number) {
+    const totalContent = this.contentHeightEnd;
+    this.maxScroll = Math.max(0, totalContent - contentHeight + 20);
+  }
+
+  private enableScroll(baseY: number, contentHeight: number) {
+    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any, deltaX: number, deltaY: number) => {
+      if (pointer.y >= baseY && pointer.y <= baseY + contentHeight) {
+        this.handleScroll(deltaY, baseY, contentHeight);
+      }
+    });
+
+    const hitArea = this.add.graphics();
+    hitArea.fillStyle(0xffffff, 0.001);
+    hitArea.fillRect(0, baseY - 5, GAME_WIDTH, contentHeight + 10);
+    hitArea.setInteractive(new Phaser.Geom.Rectangle(0, baseY - 5, GAME_WIDTH, contentHeight + 10), Phaser.Geom.Rectangle.Contains);
+    this.pageElements.push(hitArea);
+
+    hitArea.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.isDragging = true;
+      this.dragStartY = pointer.y;
+      this.dragStartScroll = this.scrollY;
+    });
+
+    hitArea.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.isDragging) {
+        const dy = this.dragStartY - pointer.y;
+        this.scrollY = Phaser.Math.Clamp(this.dragStartScroll + dy, 0, this.maxScroll);
+        if (this.contentContainer) {
+          this.contentContainer.y = baseY - this.scrollY;
+        }
+        this.drawScrollIndicator(baseY, contentHeight);
+      }
+    });
+
+    hitArea.on('pointerup', () => { this.isDragging = false; });
+    hitArea.on('pointerupoutside', () => { this.isDragging = false; });
+  }
+
+  private handleScroll(dy: number, baseY: number, contentHeight: number) {
+    this.scrollY = Phaser.Math.Clamp(this.scrollY + dy * 0.5, 0, this.maxScroll);
+    if (this.contentContainer) {
+      this.contentContainer.y = baseY - this.scrollY;
+    }
+    this.drawScrollIndicator(baseY, contentHeight);
+  }
+
+  private drawScrollIndicator(baseY: number, contentHeight: number) {
+    const oldIndicator = this.children.getByName('learnScrollIndicator');
+    if (oldIndicator) oldIndicator.destroy();
+
+    if (this.maxScroll <= 0) return;
+
+    const indicator = this.add.graphics().setName('learnScrollIndicator');
+    const trackX = GAME_WIDTH - 52;
+    const trackW = 6;
+    const totalContent = this.contentHeightEnd + 1;
+    const thumbRatio = contentHeight / totalContent;
+    const thumbH = Math.max(30, contentHeight * thumbRatio);
+    const thumbY = baseY + (this.scrollY / this.maxScroll) * (contentHeight - thumbH);
+
+    indicator.fillStyle(0x3d2b5e, 0.8);
+    indicator.fillRoundedRect(trackX, baseY, trackW, contentHeight, 3);
+    indicator.fillStyle(0xffb6c1, 0.8);
+    indicator.fillRoundedRect(trackX, thumbY, trackW, thumbH, 3);
+
+    this.pageElements.push(indicator);
   }
 
   private showBraidDiagram(type: BraidType | null, startY: number = 460) {
