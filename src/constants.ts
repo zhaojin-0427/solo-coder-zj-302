@@ -435,6 +435,333 @@ export const LEVELS: LevelConfig[] = [
   },
 ];
 
+export enum CommissionScene {
+  DATE = 'date',
+  COMMUTE = 'commute',
+  STAGE = 'stage',
+  SPORTS = 'sports',
+  SCHOOL = 'school',
+  WEDDING = 'wedding',
+}
+
+export const COMMISSION_SCENE_NAMES: Record<CommissionScene, string> = {
+  [CommissionScene.DATE]: '浪漫约会',
+  [CommissionScene.COMMUTE]: '日常通勤',
+  [CommissionScene.STAGE]: '舞台表演',
+  [CommissionScene.SPORTS]: '运动健身',
+  [CommissionScene.SCHOOL]: '校园青春',
+  [CommissionScene.WEDDING]: '婚礼伴娘',
+};
+
+export const COMMISSION_SCENE_ICONS: Record<CommissionScene, string> = {
+  [CommissionScene.DATE]: '💖',
+  [CommissionScene.COMMUTE]: '💼',
+  [CommissionScene.STAGE]: '🎭',
+  [CommissionScene.SPORTS]: '🏃‍♀️',
+  [CommissionScene.SCHOOL]: '📚',
+  [CommissionScene.WEDDING]: '👰',
+};
+
+export enum HairFeature {
+  THIN = 'thin',
+  THICK = 'thick',
+  CURLY = 'curly',
+  STRAIGHT = 'straight',
+  LONG = 'long',
+  SHORT = 'short',
+}
+
+export const HAIR_FEATURE_NAMES: Record<HairFeature, string> = {
+  [HairFeature.THIN]: '发量偏少',
+  [HairFeature.THICK]: '发量浓密',
+  [HairFeature.CURLY]: '自然卷发',
+  [HairFeature.STRAIGHT]: '顺直长发',
+  [HairFeature.LONG]: '及腰长发',
+  [HairFeature.SHORT]: '齐肩短发',
+};
+
+export enum StylePreference {
+  ELEGANT = 'elegant',
+  CASUAL = 'casual',
+  CUTE = 'cute',
+  COOL = 'cool',
+  MATURE = 'mature',
+  SWEET = 'sweet',
+}
+
+export const STYLE_PREFERENCE_NAMES: Record<StylePreference, string> = {
+  [StylePreference.ELEGANT]: '优雅大方',
+  [StylePreference.CASUAL]: '休闲随性',
+  [StylePreference.CUTE]: '可爱俏皮',
+  [StylePreference.COOL]: '酷炫个性',
+  [StylePreference.MATURE]: '成熟知性',
+  [StylePreference.SWEET]: '甜美清新',
+};
+
+export enum TabooRequirement {
+  NO_TIGHT = 'no_tight',
+  NO_EXPOSED_EARS = 'no_exposed_ears',
+  NO_BANGS = 'no_bangs',
+  NO_COMPLEX = 'no_complex',
+  NO_HALF_UP = 'no_half_up',
+  LONG_LASTING = 'long_lasting',
+}
+
+export const TABOO_NAMES: Record<TabooRequirement, string> = {
+  [TabooRequirement.NO_TIGHT]: '头皮不能太紧',
+  [TabooRequirement.NO_EXPOSED_EARS]: '不要露出耳朵',
+  [TabooRequirement.NO_BANGS]: '不要刘海',
+  [TabooRequirement.NO_COMPLEX]: '不要太复杂',
+  [TabooRequirement.NO_HALF_UP]: '不要半扎',
+  [TabooRequirement.LONG_LASTING]: '需要持久定型',
+};
+
+export interface CustomerProfile {
+  name: string;
+  avatarColor: number;
+  hairColor: number;
+  hairFeatures: HairFeature[];
+}
+
+export interface ScoringItem {
+  name: string;
+  description: string;
+  weight: number;
+}
+
+export interface CommissionConfig {
+  id: string;
+  scene: CommissionScene;
+  customer: CustomerProfile;
+  availableTime: number;
+  preferredStyles: StylePreference[];
+  taboos: TabooRequirement[];
+  braidSteps: BraidStep[];
+  hairVolume: number;
+  hasCurlInterference: boolean;
+  hasAccessory: boolean;
+  timeLimit: number;
+  difficulty: 1 | 2 | 3 | 4 | 5;
+  scoringItems: ScoringItem[];
+  rewards: {
+    exp: number;
+    title: string;
+  };
+  description: string;
+}
+
+export interface CommissionRecord {
+  commissionId: string;
+  scene: CommissionScene;
+  customerName: string;
+  score: number;
+  accuracy: number;
+  satisfaction: number;
+  satisfactionBreakdown: {
+    styleMatch: number;
+    operationAccuracy: number;
+    timeEfficiency: number;
+    mistakePenalty: number;
+  };
+  date: string;
+  success: boolean;
+  duration: number;
+  mainMistakeTypes: MistakeType[];
+}
+
+export const COMMISSIONS: CommissionConfig[] = [
+  {
+    id: 'date_001',
+    scene: CommissionScene.DATE,
+    customer: {
+      name: '小樱',
+      avatarColor: 0xffb6c1,
+      hairColor: COLORS.hairBrown,
+      hairFeatures: [HairFeature.LONG, HairFeature.STRAIGHT, HairFeature.THIN],
+    },
+    availableTime: 30,
+    preferredStyles: [StylePreference.SWEET, StylePreference.ELEGANT],
+    taboos: [TabooRequirement.NO_TIGHT],
+    braidSteps: [
+      { type: BraidType.HALF_UP, zone: HairZone.TOP, sequence: ['L', 'R', 'L', 'R'], rhythmPattern: [1, 1, 1, 1], description: '顶区半扎公主头，甜美浪漫' },
+      { type: BraidType.THREE_STRAND, zone: HairZone.LEFT, sequence: ['L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [1, 1, 1, 1, 1, 1], description: '左侧编细三股辫增加层次' },
+    ],
+    hairVolume: 1.2,
+    hasCurlInterference: false,
+    hasAccessory: true,
+    timeLimit: 150,
+    difficulty: 2,
+    scoringItems: [
+      { name: '造型匹配度', description: '是否符合甜美约会风格', weight: 0.35 },
+      { name: '操作精准度', description: '分区、抓取、节奏的准确性', weight: 0.3 },
+      { name: '时间效率', description: '在可用时间内完成', weight: 0.2 },
+      { name: '禁忌遵守', description: '头皮不紧绷等禁忌要求', weight: 0.15 },
+    ],
+    rewards: { exp: 50, title: '甜心造型师' },
+    description: '今晚有重要约会，希望有一个温柔甜美的编发造型，让对方眼前一亮！',
+  },
+  {
+    id: 'commute_001',
+    scene: CommissionScene.COMMUTE,
+    customer: {
+      name: '美琳',
+      avatarColor: 0xe8d8f0,
+      hairColor: COLORS.hairBlack,
+      hairFeatures: [HairFeature.THICK, HairFeature.STRAIGHT, HairFeature.LONG],
+    },
+    availableTime: 15,
+    preferredStyles: [StylePreference.CASUAL, StylePreference.MATURE],
+    taboos: [TabooRequirement.NO_COMPLEX, TabooRequirement.LONG_LASTING],
+    braidSteps: [
+      { type: BraidType.THREE_STRAND, zone: HairZone.BACK, sequence: ['L', 'R', 'L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8], description: '后区快速三股辫，简洁干练' },
+    ],
+    hairVolume: 1.5,
+    hasCurlInterference: false,
+    hasAccessory: false,
+    timeLimit: 100,
+    difficulty: 1,
+    scoringItems: [
+      { name: '速度效率', description: '通勤时间有限，越快越好', weight: 0.35 },
+      { name: '持久定型', description: '发型能保持一整天', weight: 0.3 },
+      { name: '简洁大方', description: '不花哨，适合职场', weight: 0.2 },
+      { name: '操作准确度', description: '基础动作不出错', weight: 0.15 },
+    ],
+    rewards: { exp: 30, title: '效率达人' },
+    description: '早上赶时间上班，需要一个快速搞定又能维持一整天的干练发型。',
+  },
+  {
+    id: 'stage_001',
+    scene: CommissionScene.STAGE,
+    customer: {
+      name: '莉娜',
+      avatarColor: 0xffd700,
+      hairColor: COLORS.hairBlonde,
+      hairFeatures: [HairFeature.LONG, HairFeature.CURLY, HairFeature.THICK],
+    },
+    availableTime: 45,
+    preferredStyles: [StylePreference.COOL, StylePreference.ELEGANT],
+    taboos: [],
+    braidSteps: [
+      { type: BraidType.FISHTAIL, zone: HairZone.TOP, sequence: ['L', 'R', 'L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1], description: '顶区精致鱼骨辫，凸显个性' },
+      { type: BraidType.FISHTAIL, zone: HairZone.LEFT, sequence: ['L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [0.5, 0.8, 0.5, 0.8, 0.5, 0.8], description: '左侧鱼骨辫，与顶区呼应' },
+      { type: BraidType.HALF_UP, zone: HairZone.RIGHT, sequence: ['L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [1, 0.5, 1, 0.5, 1, 0.5], description: '右侧半扎编发，增加层次感' },
+    ],
+    hairVolume: 1.6,
+    hasCurlInterference: true,
+    hasAccessory: true,
+    timeLimit: 200,
+    difficulty: 4,
+    scoringItems: [
+      { name: '舞台表现力', description: '造型是否足够惊艳吸睛', weight: 0.35 },
+      { name: '复杂工艺', description: '多步骤编发完成质量', weight: 0.3 },
+      { name: '精准操作', description: '应对卷发干扰的能力', weight: 0.2 },
+      { name: '整体协调', description: '多区域造型的协调感', weight: 0.15 },
+    ],
+    rewards: { exp: 100, title: '舞台魔法师' },
+    description: '今晚有舞蹈演出，需要一个华丽又动感的舞台造型，聚光灯下要最美！',
+  },
+  {
+    id: 'sports_001',
+    scene: CommissionScene.SPORTS,
+    customer: {
+      name: '小雨',
+      avatarColor: 0x98fb98,
+      hairColor: COLORS.hairBrown,
+      hairFeatures: [HairFeature.THICK, HairFeature.LONG, HairFeature.STRAIGHT],
+    },
+    availableTime: 10,
+    preferredStyles: [StylePreference.CASUAL, StylePreference.COOL],
+    taboos: [TabooRequirement.LONG_LASTING, TabooRequirement.NO_HALF_UP],
+    braidSteps: [
+      { type: BraidType.THREE_STRAND, zone: HairZone.BACK, sequence: ['L', 'R', 'L', 'R', 'L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6], description: '后区紧密三股辫，运动不散乱' },
+      { type: BraidType.THREE_STRAND, zone: HairZone.TOP, sequence: ['L', 'R', 'L', 'R'], rhythmPattern: [0.8, 0.8, 0.8, 0.8], description: '顶区蜈蚣辫收尾，碎发全收' },
+    ],
+    hairVolume: 1.4,
+    hasCurlInterference: false,
+    hasAccessory: false,
+    timeLimit: 120,
+    difficulty: 2,
+    scoringItems: [
+      { name: '牢固度', description: '运动时不散不乱', weight: 0.4 },
+      { name: '速度', description: '快速完成不耽误训练', weight: 0.25 },
+      { name: '清爽感', description: '不挡视线不闷热', weight: 0.2 },
+      { name: '操作准确', description: '收紧力度到位', weight: 0.15 },
+    ],
+    rewards: { exp: 40, title: '活力造型师' },
+    description: '下午有马拉松训练，需要一个超级牢固的发型，跑多久都不会乱！',
+  },
+  {
+    id: 'school_001',
+    scene: CommissionScene.SCHOOL,
+    customer: {
+      name: '晓晓',
+      avatarColor: 0xadd8e6,
+      hairColor: COLORS.hairBlack,
+      hairFeatures: [HairFeature.SHORT, HairFeature.STRAIGHT, HairFeature.THIN],
+    },
+    availableTime: 20,
+    preferredStyles: [StylePreference.CUTE, StylePreference.SWEET],
+    taboos: [TabooRequirement.NO_EXPOSED_EARS],
+    braidSteps: [
+      { type: BraidType.THREE_STRAND, zone: HairZone.LEFT, sequence: ['L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [1, 1, 1, 1, 1, 1], description: '左侧编小辫子，可爱加分' },
+      { type: BraidType.THREE_STRAND, zone: HairZone.RIGHT, sequence: ['L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [1, 1, 1, 1, 1, 1], description: '右侧对称小辫子，校园女神' },
+    ],
+    hairVolume: 1.0,
+    hasCurlInterference: false,
+    hasAccessory: true,
+    timeLimit: 130,
+    difficulty: 1,
+    scoringItems: [
+      { name: '可爱度', description: '是否符合校园清纯风', weight: 0.35 },
+      { name: '禁忌遵守', description: '耳朵不外露等校规', weight: 0.3 },
+      { name: '操作准确', description: '双侧对称美观', weight: 0.2 },
+      { name: '时间效率', description: '上学前快速完成', weight: 0.15 },
+    ],
+    rewards: { exp: 35, title: '校园风达人' },
+    description: '明天有校园文化节，想打扮得可爱一点，但学校规定不能露耳朵哦～',
+  },
+  {
+    id: 'wedding_001',
+    scene: CommissionScene.WEDDING,
+    customer: {
+      name: '雅婷',
+      avatarColor: 0xffe4e1,
+      hairColor: COLORS.hairBlonde,
+      hairFeatures: [HairFeature.LONG, HairFeature.CURLY, HairFeature.THICK],
+    },
+    availableTime: 60,
+    preferredStyles: [StylePreference.ELEGANT, StylePreference.SWEET],
+    taboos: [TabooRequirement.NO_TIGHT],
+    braidSteps: [
+      { type: BraidType.HALF_UP, zone: HairZone.TOP, sequence: ['L', 'R', 'L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [1, 0.5, 1, 0.5, 1, 0.5, 1, 0.5], description: '顶区精致半扎，公主气质' },
+      { type: BraidType.FISHTAIL, zone: HairZone.LEFT, sequence: ['L', 'R', 'L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1], description: '左侧细鱼骨辫，优雅细节' },
+      { type: BraidType.FISHTAIL, zone: HairZone.RIGHT, sequence: ['L', 'R', 'L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1], description: '右侧细鱼骨辫，对称协调' },
+      { type: BraidType.THREE_STRAND, zone: HairZone.BACK, sequence: ['L', 'R', 'L', 'R', 'L', 'R'], rhythmPattern: [1, 1, 1, 1, 1, 1], description: '后区三股辫盘发，端庄大方' },
+    ],
+    hairVolume: 1.5,
+    hasCurlInterference: true,
+    hasAccessory: true,
+    timeLimit: 240,
+    difficulty: 5,
+    scoringItems: [
+      { name: '优雅气质', description: '是否符合婚礼庄重氛围', weight: 0.35 },
+      { name: '复杂工艺', description: '多步骤精细编发质量', weight: 0.3 },
+      { name: '持久度', description: '全天保持完美状态', weight: 0.2 },
+      { name: '佩戴发饰', description: '发饰点缀的协调感', weight: 0.15 },
+    ],
+    rewards: { exp: 150, title: '首席婚礼造型师' },
+    description: '好闺蜜结婚，我是伴娘！需要一个优雅端庄又不抢新娘风头的完美造型～',
+  },
+];
+
+export const DIFFICULTY_STARS: Record<number, string> = {
+  1: '⭐',
+  2: '⭐⭐',
+  3: '⭐⭐⭐',
+  4: '⭐⭐⭐⭐',
+  5: '⭐⭐⭐⭐⭐',
+};
+
 export const LEARNING_CONTENT = [
   {
     title: '三股辫基础',

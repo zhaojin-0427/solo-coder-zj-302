@@ -50,15 +50,19 @@ export class MenuScene extends Phaser.Scene {
 
     this.add.image(GAME_WIDTH / 2, 310, 'head-base').setScale(1.1);
 
-    this.createMenuButton(GAME_WIDTH / 2 - 110, 440, '开始挑战', 'btn-primary', () => {
+    this.createMenuButton(GAME_WIDTH / 2 - 165, 440, '开始挑战', 'btn-primary', () => {
       this.scene.start('LevelSelectScene');
     });
 
-    this.createMenuButton(GAME_WIDTH / 2 + 110, 440, '编发学堂', 'btn-secondary', () => {
+    this.createMenuButton(GAME_WIDTH / 2, 440, '💼 委托订单', 'btn-accent', () => {
+      this.scene.start('CommissionListScene');
+    });
+
+    this.createMenuButton(GAME_WIDTH / 2 + 165, 440, '编发学堂', 'btn-secondary', () => {
       this.scene.start('LearnScene');
     });
 
-    this.createMenuButton(GAME_WIDTH / 2, 500, '📚 练习记录', 'btn-accent', () => {
+    this.createMenuButton(GAME_WIDTH / 2, 500, '📚 练习记录', 'btn-secondary', () => {
       this.scene.start('PracticeRecordScene');
     }, 0.9);
 

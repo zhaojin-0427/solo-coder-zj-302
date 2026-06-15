@@ -1,8 +1,11 @@
-import { ScoreRecord, LEVELS, PracticeRecord, GameReviewData } from './constants';
+import { ScoreRecord, LEVELS, PracticeRecord, GameReviewData, CommissionRecord } from './constants';
 
 const STORAGE_KEY = 'braiding_challenge_scores';
 const PRACTICE_KEY = 'braiding_challenge_practice_records';
 const MAX_PRACTICE_RECORDS = 5;
+const COMMISSION_KEY = 'braiding_challenge_commission_records';
+const MAX_COMMISSION_RECORDS = 5;
+const COMMISSION_BEST_KEY = 'braiding_challenge_commission_best';
 
 export function saveScore(record: ScoreRecord): void {
   const scores = getScores();
@@ -78,4 +81,50 @@ export function saveReviewToPractice(review: GameReviewData): void {
     success: review.success,
   };
   savePracticeRecord(record);
+}
+
+export function saveCommissionRecord(record: CommissionRecord): void {
+  const records = getCommissionRecords();
+  records.unshift(record);
+  const trimmed = records.slice(0, MAX_COMMISSION_RECORDS);
+  localStorage.setItem(COMMISSION_KEY, JSON.stringify(trimmed));
+
+  const bestRecords = getBestCommissionRecords();
+  const existing = bestRecords.findIndex((r) => r.commissionId === record.commissionId);
+  if (existing >= 0) {
+    if (bestRecords[existing].satisfaction < record.satisfaction) {
+      bestRecords[existing] = record;
+    }
+  } else {
+    bestRecords.push(record);
+  }
+  localStorage.setItem(COMMISSION_BEST_KEY, JSON.stringify(bestRecords));
+}
+
+export function getCommissionRecords(): CommissionRecord[] {
+  try {
+    const data = localStorage.getItem(COMMISSION_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getBestCommissionRecords(): CommissionRecord[] {
+  try {
+    const data = localStorage.getItem(COMMISSION_BEST_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getBestSatisfactionForCommission(commissionId: string): number {
+  const bestRecords = getBestCommissionRecords();
+  const record = bestRecords.find((r) => r.commissionId === commissionId);
+  return record ? record.satisfaction : 0;
+}
+
+export function clearCommissionRecords(): void {
+  localStorage.removeItem(COMMISSION_KEY);
 }
